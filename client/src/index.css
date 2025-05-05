@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+   :root {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+   }
+
+   body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+   }
+}
+
+@layer components {
+   /* Custom button styles */
+   .btn-primary {
+      @apply bg-maple-red text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors;
+   }
+
+   .btn-secondary {
+      @apply bg-white text-charcoal-gray border border-light-slate px-4 py-2 rounded-md hover:bg-gray-50 transition-colors;
+   }
+
+   /* Custom card styles */
+   .card {
+      @apply bg-white rounded-lg shadow-md overflow-hidden;
+   }
+
+   /* Custom form styles */
+   .form-input {
+      @apply w-full rounded-md border-light-slate focus:ring-maple-red focus:border-maple-red;
+   }
+
+   .form-label {
+      @apply block text-sm font-medium text-charcoal-gray mb-1;
+   }
+}

@@ -1,0 +1,123 @@
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { motion } from "framer-motion";
+
+const GroupCard = ({ group }) => {
+   const { user } = useAuth();
+   const isMember = group.members.includes(user?.id);
+
+   // Default cover image if none provided
+   const defaultCoverImages = [
+      "https://images.unsplash.com/photo-1596386461350-326ccb383e9f?q=80&w=2069&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=2069&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=2074&auto=format&fit=crop",
+   ];
+
+   // Use group ID to consistently select the same default image for a group
+   const defaultCoverImage = defaultCoverImages[parseInt(group._id.slice(-2), 16) % defaultCoverImages.length];
+
+   return (
+      <motion.div
+         whileHover={{ y: -5 }}
+         className='bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300'>
+         <div className='h-40 bg-gray-200 relative overflow-hidden'>
+            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 1.5 }} className='w-full h-full'>
+               <img
+                  src={group.coverImage ? `http://localhost:5000/uploads/${group.coverImage}` : defaultCoverImage}
+                  alt={group.name}
+                  className='w-full h-full object-cover'
+               />
+               <div className='absolute inset-0 bg-gradient-to-t from-black/40 to-transparent'></div>
+            </motion.div>
+
+            {group.isPrivate && (
+               <div className='absolute top-3 right-3'>
+                  <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-black/30 text-white backdrop-blur-sm'>
+                     <svg xmlns='http://www.w3.org/2000/svg' className='h-3 w-3 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                        <path
+                           strokeLinecap='round'
+                           strokeLinejoin='round'
+                           strokeWidth={2}
+                           d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+                        />
+                     </svg>
+                     Private
+                  </span>
+               </div>
+            )}
+         </div>
+
+         <div className='p-5'>
+            <div className='flex items-start mb-4'>
+               <motion.div
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  className='h-16 w-16 rounded-full overflow-hidden border-4 border-white bg-gray-200 -mt-12 mr-4 shadow-md'>
+                  <img
+                     src={group.image ? `http://localhost:5000/uploads/${group.image}` : "https://via.placeholder.com/150"}
+                     alt={group.name}
+                     className='h-full w-full object-cover'
+                  />
+               </motion.div>
+               <div className='pt-1'>
+                  <h3 className='text-xl font-bold text-charcoal-gray'>{group.name}</h3>
+                  <div className='flex items-center text-sm text-gray-500 mt-1'>
+                     <svg className='h-4 w-4 text-maple-red/70 mr-1' fill='currentColor' viewBox='0 0 20 20'>
+                        <path d='M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z' />
+                     </svg>
+                     <span>
+                        {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                     </span>
+
+                     {group.location && (
+                        <>
+                           <span className='mx-1'>•</span>
+                           <svg className='h-4 w-4 text-maple-red/70 mr-1' fill='currentColor' viewBox='0 0 20 20'>
+                              <path
+                                 fillRule='evenodd'
+                                 d='M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z'
+                                 clipRule='evenodd'
+                              />
+                           </svg>
+                           <span>{group.location}</span>
+                        </>
+                     )}
+                  </div>
+               </div>
+            </div>
+
+            <p className='text-gray-600 mb-5 line-clamp-3 text-sm'>{group.description}</p>
+
+            <div className='flex justify-between items-center pt-2 border-t border-gray-100'>
+               <div className='flex items-center'>
+                  {isMember && (
+                     <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                        <svg className='h-3 w-3 mr-1 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+                           <path
+                              fillRule='evenodd'
+                              d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
+                              clipRule='evenodd'
+                           />
+                        </svg>
+                        Member
+                     </span>
+                  )}
+               </div>
+
+               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link
+                     to={`/groups/${group._id}`}
+                     className='inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-maple-red hover:bg-maple-red-dark shadow-sm transition-all duration-200'>
+                     View Circle
+                     <svg className='ml-1 h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M14 5l7 7m0 0l-7 7m7-7H3' />
+                     </svg>
+                  </Link>
+               </motion.div>
+            </div>
+         </div>
+      </motion.div>
+   );
+};
+
+export default GroupCard;
