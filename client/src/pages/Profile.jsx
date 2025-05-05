@@ -257,19 +257,20 @@ const Profile = () => {
                <div className='flex flex-col'>
                   <div className='flex flex-col sm:flex-row'>
                      <div className='relative -mt-24 mb-4 sm:mb-0 flex-shrink-0'>
-                        <div className='h-32 w-32 rounded-full overflow-hidden border-4 border-white bg-gray-100 shadow-md'>
-                           {user.profilePicture ? (
-                              <img src={user.profilePicture} alt={user.name} className='h-full w-full object-cover' />
-                           ) : (
-                              <div className='h-full w-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                                 <span className='text-3xl font-bold text-white'>{user?.name?.charAt(0).toUpperCase() || "M"}</span>
-                              </div>
-                           )}
-                           {isCurrentUser && (
-                              <label className='absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer'>
+                        <div className='h-32 w-32 rounded-full overflow-hidden border-4 border-white bg-gray-100 shadow-md relative'>
+                           {/* Avatar display area */}
+                           <div
+                              id='avatarDisplay'
+                              className='h-full w-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
+                              <span className='text-3xl font-bold text-white'>S</span>
+                           </div>
+
+                           {/* Hover label with circular camera icon */}
+                           <label className='absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer'>
+                              <div className='h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-md'>
                                  <svg
                                     xmlns='http://www.w3.org/2000/svg'
-                                    className='h-8 w-8 text-white'
+                                    className='h-5 w-5 text-black'
                                     fill='none'
                                     viewBox='0 0 24 24'
                                     stroke='currentColor'>
@@ -286,11 +287,12 @@ const Profile = () => {
                                        d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'
                                     />
                                  </svg>
-                                 <input type='file' className='hidden' accept='image/*' onChange={handleImageUpload} />
-                              </label>
-                           )}
+                              </div>
+                              <input type='file' className='hidden' accept='image/*' onChange={handleImageUpload} />
+                           </label>
                         </div>
                      </div>
+
                      <div className='sm:ml-6 flex-1 min-w-0'>
                         <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between'>
                            <div className='min-w-0 max-w-full'>
