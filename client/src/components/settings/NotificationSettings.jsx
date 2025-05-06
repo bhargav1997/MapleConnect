@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import api from '../../services/api';
 
 const NotificationSettings = () => {
    const { user, updateUserContext } = useAuth();
@@ -60,7 +60,7 @@ const NotificationSettings = () => {
 
       try {
          // Update notification settings
-         const response = await axios.put(`/api/users/${user.id}/notifications`, {
+         const response = await api.put(`/users/${user.id}/notifications`, {
             notificationSettings,
          });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 const SearchResults = () => {
   const location = useLocation();
@@ -25,19 +25,19 @@ const SearchResults = () => {
       
       try {
         // Search users
-        const usersResponse = await axios.get(`/api/users?search=${query}`);
+        const usersResponse = await api.get(`/api/users?search=${query}`);
         
         // Search posts
-        const postsResponse = await axios.get(`/api/posts?search=${query}`);
+        const postsResponse = await api.get(`/api/posts?search=${query}`);
         
         // Search groups
-        const groupsResponse = await axios.get(`/api/groups?search=${query}`);
+        const groupsResponse = await api.get(`/api/groups?search=${query}`);
         
         // Search events
-        const eventsResponse = await axios.get(`/api/events?search=${query}`);
+        const eventsResponse = await api.get(`/api/events?search=${query}`);
         
         // Search marketplace
-        const marketplaceResponse = await axios.get(`/api/marketplace?search=${query}`);
+        const marketplaceResponse = await api.get(`/api/marketplace?search=${query}`);
         
         setResults({
           users: usersResponse.data.data,

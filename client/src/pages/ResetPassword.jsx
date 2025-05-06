@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -39,7 +39,7 @@ const ResetPassword = () => {
     setIsSubmitting(true);
 
     try {
-      await axios.put(`/api/auth/reset-password/${token}`, {
+      await api.put(`/api/auth/reset-password/${token}`, {
         password: formData.password,
       });
       setSuccess(true);

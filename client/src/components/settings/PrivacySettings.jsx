@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import api from "../../services/api";
 
 const PrivacySettings = () => {
    const { user, updateUserContext } = useAuth();
@@ -56,7 +56,7 @@ const PrivacySettings = () => {
 
       try {
          // Update privacy settings
-         const response = await axios.put(`/api/users/${user.id}/privacy`, {
+         const response = await api.put(`/users/${user.id}/privacy`, {
             privacySettings,
          });
 

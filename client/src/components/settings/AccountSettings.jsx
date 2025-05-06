@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import api from '../../services/api';
 
 const AccountSettings = () => {
    const { user } = useAuth();
@@ -109,7 +109,7 @@ const AccountSettings = () => {
 
       try {
          // Update password
-         await axios.put(`/api/users/${user.id}/password`, {
+         await api.put(`/users/${user.id}/password`, {
             currentPassword: formData.currentPassword,
             newPassword: formData.newPassword,
          });
@@ -132,7 +132,7 @@ const AccountSettings = () => {
    const handleDeleteAccount = async () => {
       if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
          try {
-            await axios.delete(`/api/users/${user.id}`);
+            await api.delete(`/users/${user.id}`);
             // Logout and redirect to home page
             window.location.href = "/";
          } catch (err) {

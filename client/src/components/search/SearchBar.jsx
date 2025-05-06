@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 
 const SearchBar = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,16 +40,16 @@ const SearchBar = () => {
     setIsLoading(true);
     try {
       // Search users
-      const usersResponse = await axios.get(`/api/users?search=${searchTerm}`);
+      const usersResponse = await api.get(`/api/users?search=${searchTerm}`);
       
       // Search posts
-      const postsResponse = await axios.get(`/api/posts?search=${searchTerm}`);
+      const postsResponse = await api.get(`/api/posts?search=${searchTerm}`);
       
       // Search groups
-      const groupsResponse = await axios.get(`/api/groups?search=${searchTerm}`);
+      const groupsResponse = await api.get(`/api/groups?search=${searchTerm}`);
       
       // Search events
-      const eventsResponse = await axios.get(`/api/events?search=${searchTerm}`);
+      const eventsResponse = await api.get(`/api/events?search=${searchTerm}`);
       
       // Combine results
       const combinedResults = [

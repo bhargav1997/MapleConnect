@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthLayout from "../components/auth/AuthLayout";
 import AnimatedInput from "../components/auth/AnimatedInput";
+import api from "../services/api";
 
 const ForgotPassword = () => {
    const [email, setEmail] = useState("");
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
       setIsSubmitting(true);
 
       try {
-         await axios.post("/api/auth/forgot-password", { email });
+         await api.post("/api/auth/forgot-password", { email });
          setSuccess(true);
       } catch (err) {
          setError(err.response?.data?.error || "Unable to process your request. Please try again later.");

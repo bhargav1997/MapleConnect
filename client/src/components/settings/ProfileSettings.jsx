@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { useDispatch } from "react-redux";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import api from "../../services/api";
 
 const ProfileSettings = () => {
    const { user, updateUserContext } = useAuth();
-   const dispatch = useDispatch();
 
    const [formData, setFormData] = useState({
       name: user?.name || "",
@@ -91,7 +89,7 @@ const ProfileSettings = () => {
          }
 
          // Update user profile
-         const response = await axios.put(`/api/users/${user.id}`, formDataObj, {
+         const response = await api.put(`/users/${user.id}`, formDataObj, {
             headers: {
                "Content-Type": "multipart/form-data",
             },
