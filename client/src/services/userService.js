@@ -55,3 +55,13 @@ export const searchUsers = async (query) => {
    const response = await api.get(`/users/search?query=${encodeURIComponent(query)}`);
    return response.data;
 };
+
+export const getSuggestedUsers = async () => {
+   try {
+      const response = await api.get("/users/suggested");
+      return response.data;
+   } catch (error) {
+      console.error("Error fetching suggested users:", error);
+      throw error;
+   }
+};

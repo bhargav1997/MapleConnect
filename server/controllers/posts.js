@@ -278,7 +278,7 @@ exports.addComment = async (req, res, next) => {
       // Create new comment
       const newComment = {
          user: req.user.id,
-         text: req.body.text,
+         content: req.body.content,
       };
 
       // Add to comments array

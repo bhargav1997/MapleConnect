@@ -21,7 +21,50 @@ export const register = async (userData) => {
    }
 };
 
-// Login user
+// Generate OTP for login
+export const generateLoginOTP = async (email) => {
+   try {
+      console.log("Generating OTP for:", email);
+      const response = await api.post("/auth/generate-login-otp", { email });
+      return response.data;
+   } catch (error) {
+      console.error("Generate OTP error:", error);
+      throw error;
+   }
+};
+
+// Verify OTP and complete login
+export const verifyLoginOTP = async (otpData) => {
+   try {
+      console.log("Verifying OTP for:", otpData.email);
+      const response = await api.post("/auth/verify-login-otp", otpData);
+
+      if (response.data && response.data.success) {
+         console.log("OTP verification successful, saving user data");
+         localStorage.setItem("user", JSON.stringify(response.data.user));
+         localStorage.setItem("token", response.data.token);
+      }
+
+      return response.data;
+   } catch (error) {
+      console.error("OTP verification error:", error);
+      throw error;
+   }
+};
+
+// Resend OTP
+export const resendLoginOTP = async (email, tempToken) => {
+   try {
+      console.log("Resending OTP for:", email);
+      const response = await api.post("/auth/resend-login-otp", { email, tempToken });
+      return response.data;
+   } catch (error) {
+      console.error("Resend OTP error:", error);
+      throw error;
+   }
+};
+
+// Login user (traditional password-based)
 export const login = async (userData) => {
    try {
       console.log("Logging in user:", userData.email);

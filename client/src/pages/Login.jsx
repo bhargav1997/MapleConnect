@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import AuthLayout from "../components/auth/AuthLayout";
 import AnimatedInput from "../components/auth/AnimatedInput";
 import SocialLoginButtons from "../components/auth/SocialLoginButtons";
+import * as authService from "../services/authService";
+import { toast } from "react-hot-toast";
 
 const Login = () => {
    const [formData, setFormData] = useState({
@@ -13,8 +15,12 @@ const Login = () => {
    });
    const [formError, setFormError] = useState("");
    const [fieldErrors, setFieldErrors] = useState({});
+   const [isOtpSent, setIsOtpSent] = useState(false);
+   const [tempToken, setTempToken] = useState(null);
+   const [isLoading, setIsLoading] = useState(false);
 
-   const { login, isLoading, error } = useAuth();
+   const { login } = useAuth();
+   const navigate = useNavigate();
 
    const handleChange = (e) => {
       setFormData({
@@ -43,7 +49,7 @@ const Login = () => {
          isValid = false;
       }
 
-      if (!formData.password) {
+      if (!isOtpSent && !formData.password) {
          errors.password = "Password is required";
          isValid = false;
       }
@@ -55,16 +61,37 @@ const Login = () => {
    const handleSubmit = async (e) => {
       e.preventDefault();
       setFormError("");
+      setIsLoading(true);
 
       // Validate form
       if (!validateForm()) {
+         setIsLoading(false);
          return;
       }
 
       try {
-         await login(formData);
+         if (!isOtpSent) {
+            // Generate OTP
+            const response = await authService.generateLoginOTP(formData.email);
+            if (response.success) {
+               setTempToken(response.tempToken);
+               setIsOtpSent(true);
+               toast.success("OTP sent successfully!");
+               // Navigate to OTP verification page
+               navigate("/otp-verify", {
+                  state: {
+                     email: formData.email,
+                     tempToken: response.tempToken,
+                  },
+               });
+            }
+         }
       } catch (error) {
-         // Error is handled by the auth context
+         const errorMessage = error.response?.data?.error || "Failed to send OTP";
+         setFormError(errorMessage);
+         toast.error(errorMessage);
+      } finally {
+         setIsLoading(false);
       }
    };
 
@@ -74,67 +101,33 @@ const Login = () => {
    };
 
    return (
-      <AuthLayout title='Sign in to your account' subtitle='Welcome back! Please enter your details.' isLoginPage={true}>
-         <form onSubmit={handleSubmit}>
-            {(formError || error) && (
-               <div className='mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded'>
-                  <div className='flex'>
-                     <div className='flex-shrink-0'>
-                        <svg className='h-5 w-5 text-red-400' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'>
-                           <path
-                              fillRule='evenodd'
-                              d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
-                              clipRule='evenodd'
-                           />
-                        </svg>
-                     </div>
-                     <div className='ml-3'>
-                        <p className='text-sm text-red-700'>{formError || error}</p>
-                     </div>
-                  </div>
-               </div>
-            )}
+      <AuthLayout title='Welcome back' subtitle='Sign in to your account'>
+         <form onSubmit={handleSubmit} className='space-y-6'>
+            {formError && <div className='bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm'>{formError}</div>}
 
             <AnimatedInput
-               id='email'
-               name='email'
+               label='Email'
                type='email'
-               label='Email address'
+               name='email'
                value={formData.email}
                onChange={handleChange}
-               autoComplete='email'
-               required
                error={fieldErrors.email}
-               icon={
-                  <svg xmlns='http://www.w3.org/2000/svg' className='h-5 w-5' viewBox='0 0 20 20' fill='currentColor'>
-                     <path d='M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z' />
-                     <path d='M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z' />
-                  </svg>
-               }
-            />
-
-            <AnimatedInput
-               id='password'
-               name='password'
-               type='password'
-               label='Password'
-               value={formData.password}
-               onChange={handleChange}
-               autoComplete='current-password'
                required
-               error={fieldErrors.password}
-               icon={
-                  <svg xmlns='http://www.w3.org/2000/svg' className='h-5 w-5' viewBox='0 0 20 20' fill='currentColor'>
-                     <path
-                        fillRule='evenodd'
-                        d='M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z'
-                        clipRule='evenodd'
-                     />
-                  </svg>
-               }
             />
 
-            <div className='flex items-center justify-between mt-6 mb-6'>
+            {!isOtpSent && (
+               <AnimatedInput
+                  label='Password'
+                  type='password'
+                  name='password'
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={fieldErrors.password}
+                  required
+               />
+            )}
+
+            <div className='flex items-center justify-between'>
                <div className='flex items-center'>
                   <input
                      id='remember-me'
@@ -142,14 +135,14 @@ const Login = () => {
                      type='checkbox'
                      className='h-4 w-4 text-maple-red focus:ring-maple-red border-gray-300 rounded'
                   />
-                  <label htmlFor='remember-me' className='ml-2 block text-sm text-gray-700'>
+                  <label htmlFor='remember-me' className='ml-2 block text-sm text-gray-900'>
                      Remember me
                   </label>
                </div>
 
                <div className='text-sm'>
-                  <Link to='/forgot-password' className='font-medium text-maple-red hover:text-red-700 transition-colors'>
-                     Forgot password?
+                  <Link to='/forgot-password' className='font-medium text-maple-red hover:text-red-700'>
+                     Forgot your password?
                   </Link>
                </div>
             </div>
@@ -173,8 +166,10 @@ const Login = () => {
                            fill='currentColor'
                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
                      </svg>
-                     Signing in...
+                     {isOtpSent ? "Sending OTP..." : "Signing in..."}
                   </div>
+               ) : isOtpSent ? (
+                  "Resend OTP"
                ) : (
                   "Sign in"
                )}

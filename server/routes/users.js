@@ -8,6 +8,7 @@ const {
    unfollowUser,
    getUserPosts,
    searchUsers,
+   getSuggestedUsers,
 } = require("../controllers/users");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
@@ -19,6 +20,7 @@ router.use(protect);
 
 router.route("/").get(getUsers);
 router.route("/search").get(searchUsers);
+router.route("/suggested").get(getSuggestedUsers);
 
 router.route("/:id").get(getUser).put(updateUser);
 

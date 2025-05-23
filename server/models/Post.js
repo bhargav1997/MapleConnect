@@ -10,39 +10,17 @@ const PostSchema = new mongoose.Schema(
       content: {
          type: String,
          required: [true, "Please add some content"],
-         maxlength: [1000, "Content cannot be more than 1000 characters"],
+         trim: true,
+         maxlength: [5000, "Post cannot be more than 5000 characters"],
       },
-      media: [
+      images: [
          {
-            type: String,
-         },
-      ],
-      likes: [
-         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-         },
-      ],
-      comments: [
-         {
-            user: {
-               type: mongoose.Schema.Types.ObjectId,
-               ref: "User",
-               required: true,
-            },
-            text: {
-               type: String,
-               required: true,
-               maxlength: [500, "Comment cannot be more than 500 characters"],
-            },
-            createdAt: {
-               type: Date,
-               default: Date.now,
-            },
+            type: String, // Cloudinary URL
          },
       ],
       location: {
          type: String,
+         trim: true,
          maxlength: [100, "Location cannot be more than 100 characters"],
       },
       feeling: {
@@ -92,6 +70,39 @@ const PostSchema = new mongoose.Schema(
             type: String,
          },
       ],
+      group: {
+         type: mongoose.Schema.Types.ObjectId,
+         ref: "Group",
+      },
+      isPrivate: {
+         type: Boolean,
+         default: false,
+      },
+      likes: [
+         {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+         },
+      ],
+      comments: [
+         {
+            user: {
+               type: mongoose.Schema.Types.ObjectId,
+               ref: "User",
+               required: true,
+            },
+            content: {
+               type: String,
+               required: [true, "Please add a comment"],
+               trim: true,
+               maxlength: [1000, "Comment cannot be more than 1000 characters"],
+            },
+            createdAt: {
+               type: Date,
+               default: Date.now,
+            },
+         },
+      ],
    },
    {
       timestamps: true,
@@ -99,5 +110,21 @@ const PostSchema = new mongoose.Schema(
       toObject: { virtuals: true },
    },
 );
+
+// Virtual for likes count
+PostSchema.virtual("likesCount").get(function () {
+   return this.likes.length;
+});
+
+// Virtual for comments count
+PostSchema.virtual("commentsCount").get(function () {
+   return this.comments.length;
+});
+
+// Cascade delete comments when a post is deleted
+PostSchema.pre("remove", async function (next) {
+   await this.model("Comment").deleteMany({ post: this._id });
+   next();
+});
 
 module.exports = mongoose.model("Post", PostSchema);

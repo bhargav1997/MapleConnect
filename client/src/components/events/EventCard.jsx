@@ -45,11 +45,7 @@ const EventCard = ({ event }) => {
          }`}>
          <div className='h-40 bg-gray-200 relative overflow-hidden'>
             <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 1.5 }} className='w-full h-full'>
-               <img
-                  src={event.image ? `http://localhost:5000/uploads/${event.image}` : defaultEventImage}
-                  alt={event.title}
-                  className='w-full h-full object-cover'
-               />
+               <img src={event.image || defaultEventImage} alt={event.title} className='w-full h-full object-cover' />
                <div className='absolute inset-0 bg-gradient-to-t from-black/40 to-transparent'></div>
             </motion.div>
 
@@ -117,7 +113,7 @@ const EventCard = ({ event }) => {
                <div className='flex items-center mb-4'>
                   <div className='flex-shrink-0 h-6 w-6 rounded-full overflow-hidden bg-gray-200 mr-2 border border-gray-100'>
                      <img
-                        src={event.group.image ? `http://localhost:5000/uploads/${event.group.image}` : "https://via.placeholder.com/150"}
+                        src={event.group.image || "https://via.placeholder.com/150"}
                         alt={event.group.name}
                         className='h-full w-full object-cover'
                      />
@@ -141,11 +137,7 @@ const EventCard = ({ event }) => {
                               key={attendee.user._id || attendee.user}
                               className='h-6 w-6 rounded-full overflow-hidden border-2 border-white shadow-sm'>
                               <img
-                                 src={
-                                    attendee.user.profileImage
-                                       ? `http://localhost:5000/uploads/${attendee.user.profileImage}`
-                                       : "https://via.placeholder.com/150"
-                                 }
+                                 src={attendee.user.profileImage ? attendee.user.profileImage : "https://via.placeholder.com/150"}
                                  alt='Attendee'
                                  className='h-full w-full object-cover'
                               />

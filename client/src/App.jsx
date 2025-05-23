@@ -27,6 +27,7 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
+import Discover from "./pages/Discover";
 
 // Support Pages
 import Support from "./pages/support/Support";
@@ -34,6 +35,7 @@ import HelpCenter from "./pages/support/HelpCenter";
 import CommunityGuidelines from "./pages/support/CommunityGuidelines";
 import PrivacyPolicy from "./pages/support/PrivacyPolicy";
 import TermsOfService from "./pages/support/TermsOfService";
+import LoginOTPVerification from "./pages/LoginOTPVerification";
 
 function App() {
    return (
@@ -49,6 +51,7 @@ function App() {
                         <Route path='/register' element={<Register />} />
                         <Route path='/forgot-password' element={<ForgotPassword />} />
                         <Route path='/reset-password/:token' element={<ResetPassword />} />
+                        <Route path='/otp-verify' element={<LoginOTPVerification />} />
                      </Route>
 
                      {/* Support Routes - accessible to all */}
@@ -73,6 +76,7 @@ function App() {
                         <Route path='/messages/:userId' element={<Messages />} />
                         <Route path='/notifications' element={<Notifications />} />
                         <Route path='/settings' element={<Settings />} />
+                        <Route path='/discover' element={<Discover />} />
                      </Route>
 
                      {/* 404 Route */}

@@ -1,38 +1,52 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
+const { emailConfig, validateConfig } = require("../config/email");
 
 const sendEmail = async (options) => {
-  // Create a test account if no SMTP settings are provided
-  let testAccount;
-  if (!process.env.SMTP_HOST) {
-    testAccount = await nodemailer.createTestAccount();
-  }
+   try {
+      // Validate configuration first
+      if (!validateConfig()) {
+         throw new Error("Email configuration is incomplete");
+      }
 
-  // Create transporter
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || testAccount.smtp.host,
-    port: process.env.SMTP_PORT || testAccount.smtp.port,
-    secure: process.env.SMTP_SECURE === 'true' || testAccount?.smtp.secure,
-    auth: {
-      user: process.env.SMTP_EMAIL || testAccount.user,
-      pass: process.env.SMTP_PASSWORD || testAccount.pass
-    }
-  });
+      // Log configuration (without sensitive data)
+      console.log("Email Configuration:", {
+         host: emailConfig.host,
+         port: emailConfig.port,
+         from: emailConfig.from.email,
+      });
 
-  // Define email options
-  const mailOptions = {
-    from: `${process.env.FROM_NAME || 'MapleConnect'} <${process.env.FROM_EMAIL || 'noreply@mapleconnect.ca'}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message
-  };
+      // Create a transporter
+      const transporter = nodemailer.createTransport({
+         host: emailConfig.host,
+         port: emailConfig.port,
+         secure: emailConfig.secure,
+         auth: emailConfig.auth,
+      });
 
-  // Send email
-  const info = await transporter.sendMail(mailOptions);
+      // Verify transporter configuration
+      await transporter.verify();
+      console.log("SMTP connection verified successfully");
 
-  // Log URL for ethereal email testing
-  if (testAccount) {
-    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-  }
+      // Define email options
+      const message = {
+         from: `${emailConfig.from.name} <${emailConfig.from.email}>`,
+         to: options.email,
+         subject: options.subject,
+         html: options.html,
+      };
+
+      // Send email
+      const info = await transporter.sendMail(message);
+      console.log("Message sent successfully:", info.messageId);
+      return info;
+   } catch (error) {
+      console.error("Email sending failed:", {
+         error: error.message,
+         code: error.code,
+         command: error.command,
+      });
+      throw new Error(`Email could not be sent: ${error.message}`);
+   }
 };
 
 module.exports = sendEmail;

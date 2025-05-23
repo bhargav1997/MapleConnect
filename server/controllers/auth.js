@@ -1,4 +1,7 @@
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const sendEmail = require("../utils/sendEmail");
+const { checkEmailConfig } = require("../utils/checkConfig");
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -126,6 +129,218 @@ exports.logout = async (req, res, next) => {
       success: true,
       data: {},
    });
+};
+
+// @desc    Generate and send OTP for login
+// @route   POST /api/auth/generate-login-otp
+// @access  Public
+exports.generateLoginOTP = async (req, res, next) => {
+   try {
+      // Check email configuration first
+      if (!checkEmailConfig()) {
+         return res.status(500).json({
+            success: false,
+            error: "Email service is not properly configured",
+         });
+      }
+
+      const { email } = req.body;
+
+      if (!email) {
+         return res.status(400).json({
+            success: false,
+            error: "Please provide an email",
+         });
+      }
+
+      // Check if user exists
+      const user = await User.findOne({ email }).select("+otp +otpExpiry");
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Set OTP using the new method
+      await user.setOTP(otp);
+
+      // Send OTP via email
+      const message = `
+         <h1>Your Login OTP</h1>
+         <p>Your OTP for logging into MapleConnect is: <strong>${otp}</strong></p>
+         <p>This OTP will expire in 15 minutes.</p>
+         <p>If you didn't request this OTP, please ignore this email.</p>
+      `;
+
+      try {
+         await sendEmail({
+            email: user.email,
+            subject: "Your Login OTP - MapleConnect",
+            html: message,
+         });
+
+         // Generate temporary token for OTP verification
+         const tempToken = jwt.sign({ id: user._id, purpose: "otp_verification" }, process.env.JWT_SECRET, { expiresIn: "15m" });
+
+         res.status(200).json({
+            success: true,
+            message: "OTP sent successfully",
+            tempToken,
+         });
+      } catch (err) {
+         console.error("OTP email sending failed:", err);
+         // If email fails, clear OTP
+         user.otp = undefined;
+         user.otpExpiry = undefined;
+         await user.save();
+
+         return res.status(500).json({
+            success: false,
+            error: `Email could not be sent: ${err.message}`,
+         });
+      }
+   } catch (err) {
+      next(err);
+   }
+};
+
+// @desc    Verify OTP and complete login
+// @route   POST /api/auth/verify-login-otp
+// @access  Public
+exports.verifyLoginOTP = async (req, res, next) => {
+   try {
+      const { email, otp, tempToken } = req.body;
+
+      if (!email || !otp || !tempToken) {
+         return res.status(400).json({
+            success: false,
+            error: "Please provide email, OTP and temporary token",
+         });
+      }
+
+      // Verify temp token
+      const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+      if (decoded.purpose !== "otp_verification") {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid token",
+         });
+      }
+
+      // Find user and select OTP fields
+      const user = await User.findOne({ email }).select("+otp +otpExpiry");
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Verify OTP using the new method
+      const isValid = await user.verifyOTP(otp);
+      if (!isValid) {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid or expired OTP",
+         });
+      }
+
+      // Send final authentication token
+      sendTokenResponse(user, 200, res);
+   } catch (err) {
+      if (err.name === "JsonWebTokenError") {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid token",
+         });
+      }
+      next(err);
+   }
+};
+
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-login-otp
+// @access  Public
+exports.resendLoginOTP = async (req, res, next) => {
+   try {
+      const { email, tempToken } = req.body;
+
+      if (!email || !tempToken) {
+         return res.status(400).json({
+            success: false,
+            error: "Please provide email and temporary token",
+         });
+      }
+
+      // Verify temp token
+      const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+      if (decoded.purpose !== "otp_verification") {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid token",
+         });
+      }
+
+      // Find user
+      const user = await User.findOne({ email });
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Generate new OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Store new OTP
+      user.otp = otp;
+      user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+      await user.save();
+
+      // Send new OTP via email
+      const message = `
+         <h1>Your New Login OTP</h1>
+         <p>Your new OTP for logging into MapleConnect is: <strong>${otp}</strong></p>
+         <p>This OTP will expire in 15 minutes.</p>
+         <p>If you didn't request this OTP, please ignore this email.</p>
+      `;
+
+      try {
+         await sendEmail({
+            email: user.email,
+            subject: "Your New Login OTP - MapleConnect",
+            html: message,
+         });
+
+         res.status(200).json({
+            success: true,
+            message: "OTP resent successfully",
+         });
+      } catch (err) {
+         // If email fails, clear OTP and return error
+         user.otp = undefined;
+         user.otpExpiry = undefined;
+         await user.save();
+
+         return res.status(500).json({
+            success: false,
+            error: "Email could not be sent",
+         });
+      }
+   } catch (err) {
+      if (err.name === "JsonWebTokenError") {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid token",
+         });
+      }
+      next(err);
+   }
 };
 
 // Get token from model, create cookie and send response

@@ -1,140 +1,78 @@
 import api from "./api";
 
 // Get all posts
-export const getPosts = async () => {
-   const response = await api.get("/posts");
-   return response.data;
+export const getPosts = async (page = 1, limit = 10) => {
+   try {
+      const response = await api.get(`/posts?page=${page}&limit=${limit}`);
+      return response.data;
+   } catch (error) {
+      throw error.response?.data || error;
+   }
 };
 
 // Get post by ID
-export const getPostById = async (postId) => {
-   const response = await api.get(`/posts/${postId}`);
-   return response.data;
+export const getPostById = async (id) => {
+   const response = await api.get(`/posts/${id}`);
+   return response;
 };
 
 // Create post
-export const createPost = async (postData) => {
-   const formData = new FormData();
-
-   // Add text content
-   formData.append("content", postData.content);
-
-   // Add location if provided
-   if (postData.location) {
-      formData.append("location", postData.location);
-   }
-
-   // Add media files if provided
-   if (postData.media && postData.media.length > 0) {
-      postData.media.forEach((file) => {
-         formData.append("media", file);
-      });
-   }
-
-   // Add feeling if provided
-   if (postData.feeling) {
-      formData.append("feeling", postData.feeling);
-   }
-
-   // Add activity if provided
-   if (postData.activity) {
-      formData.append("activity", postData.activity);
-   }
-
-   // Add visibility if provided
-   if (postData.visibility) {
-      formData.append("visibility", postData.visibility);
-   }
-
-   // Add tagged users if provided
-   if (postData.taggedUserIds && postData.taggedUserIds.length > 0) {
-      postData.taggedUserIds.forEach((userId) => {
-         formData.append("taggedUserIds", userId);
-      });
-   }
-
-   // Add poll if provided
-   if (postData.poll) {
-      if (postData.poll.question) {
-         formData.append("pollQuestion", postData.poll.question);
-      }
-
-      if (postData.poll.options && postData.poll.options.length > 0) {
-         postData.poll.options.forEach((option) => {
-            formData.append("pollOptions", option);
-         });
-      }
-
-      if (postData.poll.expiresAt) {
-         formData.append("pollExpiration", postData.poll.expiresAt);
-      }
-   }
-
+export const createPost = async (formData) => {
    const response = await api.post("/posts", formData, {
       headers: {
          "Content-Type": "multipart/form-data",
       },
    });
-
-   return response.data;
+   return response;
 };
 
 // Update post
-export const updatePost = async (postId, postData) => {
-   const formData = new FormData();
-
-   // Add text content
-   formData.append("content", postData.content);
-
-   // Add location if provided
-   if (postData.location) {
-      formData.append("location", postData.location);
-   }
-
-   // Add media files if provided
-   if (postData.media && postData.media.length > 0) {
-      postData.media.forEach((file) => {
-         formData.append("media", file);
-      });
-   }
-
-   const response = await api.put(`/posts/${postId}`, formData, {
-      headers: {
-         "Content-Type": "multipart/form-data",
-      },
-   });
-
-   return response.data;
+export const updatePost = async (id, data) => {
+   const response = await api.put(`/posts/${id}`, data);
+   return response;
 };
 
 // Delete post
-export const deletePost = async (postId) => {
-   const response = await api.delete(`/posts/${postId}`);
-   return response.data;
+export const deletePost = async (id) => {
+   try {
+      const response = await api.delete(`/posts/${id}`);
+      return response.data;
+   } catch (error) {
+      console.error("Error deleting post:", error);
+      throw error;
+   }
 };
 
 // Like post
-export const likePost = async (postId) => {
-   const response = await api.put(`/posts/${postId}/like`);
-   return response.data;
+export const likePost = async (id) => {
+   const response = await api.put(`/posts/${id}/like`);
+   return response;
 };
 
 // Unlike post
-export const unlikePost = async (postId) => {
-   const response = await api.put(`/posts/${postId}/unlike`);
-   return response.data;
+export const unlikePost = async (id) => {
+   const response = await api.put(`/posts/${id}/unlike`);
+   return response;
 };
 
 // Add comment to post
-export const addComment = async (postId, commentText) => {
-   const response = await api.post(`/posts/${postId}/comments`, {
-      text: commentText,
-   });
-   return response.data;
+export const commentOnPost = async (id, commentData) => {
+   const response = await api.post(`/posts/${id}/comments`, commentData);
+   return response;
 };
 
 // Delete comment from post
 export const deleteComment = async (postId, commentId) => {
    const response = await api.delete(`/posts/${postId}/comments/${commentId}`);
-   return response.data;
+   return response;
+};
+
+export const reportPost = async (id) => {
+   try {
+      const response = await api.post(`/posts/${id}/report`);
+      return response.data;
+   } catch (error) {
+      console.error("Error reporting post:", error);
+      throw error;
+   }
 };

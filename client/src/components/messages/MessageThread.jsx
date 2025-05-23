@@ -18,6 +18,7 @@ import {
    deleteMessageSuccess,
    deleteMessageFailure,
 } from "../../redux/slices/messageSlice";
+import { getUserInitials } from "../../utils/helpers";
 
 const MessageThread = ({ selectedUser, onBack }) => {
    const dispatch = useDispatch();
@@ -239,15 +240,9 @@ const MessageThread = ({ selectedUser, onBack }) => {
                   </button>
                )}
                <Link to={`/profile/${selectedUser._id}`} className='flex items-center'>
-                  <img
-                     className='h-10 w-10 rounded-full object-cover border border-gray-200'
-                     src={
-                        selectedUser.profileImage
-                           ? `http://localhost:5000/uploads/${selectedUser.profileImage}`
-                           : "https://via.placeholder.com/150"
-                     }
-                     alt={selectedUser.name}
-                  />
+                  <div className='h-8 w-8 rounded-full bg-gradient-to-br from-maple-red/80 to-maple-red flex items-center justify-center text-white text-xs font-bold'>
+                     {getUserInitials(selectedUser.name)}
+                  </div>
                   <div className='ml-3'>
                      <span className='text-base font-semibold text-charcoal-gray hover:text-maple-red transition-colors'>
                         {selectedUser.name}
@@ -368,15 +363,9 @@ const MessageThread = ({ selectedUser, onBack }) => {
                               <div className='flex max-w-xs md:max-w-md'>
                                  {!isSentByMe && isFirstInGroup && (
                                     <div className='flex-shrink-0 mr-2 mt-1'>
-                                       <img
-                                          className='h-8 w-8 rounded-full object-cover border border-gray-200'
-                                          src={
-                                             message.sender.profileImage
-                                                ? `http://localhost:5000/uploads/${message.sender.profileImage}`
-                                                : "https://via.placeholder.com/150"
-                                          }
-                                          alt={message.sender.name}
-                                       />
+                                       <div className='h-8 w-8 rounded-full bg-gradient-to-br from-maple-red/80 to-maple-red flex items-center justify-center text-white text-xs font-bold'>
+                                          {getUserInitials(message.sender.name)}
+                                       </div>
                                     </div>
                                  )}
                                  {!isSentByMe && !isFirstInGroup && <div className='w-8 mr-2'></div>}

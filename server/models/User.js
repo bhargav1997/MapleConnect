@@ -15,8 +15,7 @@ const UserSchema = new mongoose.Schema(
          required: [true, "Please add a username"],
          unique: true,
          trim: true,
-         maxlength: [30, "Username cannot be more than 30 characters"],
-         match: [/^[a-zA-Z0-9_.]+$/, "Username can only contain letters, numbers, underscores and dots"],
+         maxlength: [50, "Username cannot be more than 50 characters"],
       },
       email: {
          type: String,
@@ -28,6 +27,14 @@ const UserSchema = new mongoose.Schema(
          type: String,
          required: [true, "Please add a password"],
          minlength: [6, "Password must be at least 6 characters"],
+         select: false,
+      },
+      otp: {
+         type: String,
+         select: false,
+      },
+      otpExpiry: {
+         type: Date,
          select: false,
       },
       bio: {
@@ -88,6 +95,30 @@ UserSchema.methods.getSignedJwtToken = function () {
 // Match user entered password to hashed password in database
 UserSchema.methods.matchPassword = async function (enteredPassword) {
    return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Method to set OTP
+UserSchema.methods.setOTP = async function (otp) {
+   this.otp = otp;
+   this.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+   return await this.save();
+};
+
+// Method to verify OTP
+UserSchema.methods.verifyOTP = async function (otp) {
+   if (!this.otp || !this.otpExpiry) {
+      return false;
+   }
+
+   const isValid = this.otp === otp && Date.now() < this.otpExpiry;
+
+   if (isValid) {
+      this.otp = undefined;
+      this.otpExpiry = undefined;
+      await this.save();
+   }
+
+   return isValid;
 };
 
 module.exports = mongoose.model("User", UserSchema);

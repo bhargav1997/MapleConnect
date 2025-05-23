@@ -7,6 +7,7 @@ import ProfileSettings from "../components/settings/ProfileSettings";
 import AccountSettings from "../components/settings/AccountSettings";
 import PrivacySettings from "../components/settings/PrivacySettings";
 import NotificationSettings from "../components/settings/NotificationSettings";
+import { getUserInitials } from "../utils/helpers";
 
 const Settings = () => {
    const [activeTab, setActiveTab] = useState("profile");
@@ -201,7 +202,7 @@ const Settings = () => {
                               />
                            ) : (
                               <div className='h-full w-full flex items-center justify-center bg-maple-red text-white'>
-                                 {user?.name?.charAt(0).toUpperCase() || "U"}
+                                 {getUserInitials(user?.name)}
                               </div>
                            )}
                         </div>

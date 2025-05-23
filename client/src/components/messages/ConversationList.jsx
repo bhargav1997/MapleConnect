@@ -3,6 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { getConversations } from "../../services/messageService";
 import { getConversationsStart, getConversationsSuccess, getConversationsFailure } from "../../redux/slices/messageSlice";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { getUserInitials } from "../../utils/helpers";
 
 const ConversationList = ({ onSelectConversation, selectedUserId }) => {
    const dispatch = useDispatch();
@@ -179,15 +182,9 @@ const ConversationList = ({ onSelectConversation, selectedUserId }) => {
                            onClick={() => onSelectConversation(conversation.user)}>
                            <div className='px-5 py-4 flex items-center'>
                               <div className='relative flex-shrink-0'>
-                                 <img
-                                    className='h-12 w-12 rounded-full object-cover border border-gray-200'
-                                    src={
-                                       conversation.user.profileImage
-                                          ? `http://localhost:5000/uploads/${conversation.user.profileImage}`
-                                          : "https://via.placeholder.com/150"
-                                    }
-                                    alt={conversation.user.name}
-                                 />
+                                 <div className='h-12 w-12 rounded-full bg-gradient-to-br from-maple-red/80 to-maple-red flex items-center justify-center text-white font-bold'>
+                                    {getUserInitials(conversation.user.name)}
+                                 </div>
                                  {conversation.unreadCount > 0 && (
                                     <motion.span
                                        initial={{ scale: 0 }}

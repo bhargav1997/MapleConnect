@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getUserById, getUserPosts, followUser, unfollowUser, updateProfileImage, updateUser } from "../services/userService";
 import PostCard from "../components/PostCard";
 import { motion } from "framer-motion";
+import { getUserInitials } from "../utils/helpers";
 
 const Profile = () => {
    const { id } = useParams();
@@ -262,7 +263,7 @@ const Profile = () => {
                            <div
                               id='avatarDisplay'
                               className='h-full w-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                              <span className='text-3xl font-bold text-white'>S</span>
+                              <span className='text-3xl font-bold text-white'>{getUserInitials(user?.name)}</span>
                            </div>
 
                            {/* Hover label with circular camera icon */}

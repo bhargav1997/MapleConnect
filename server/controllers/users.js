@@ -302,3 +302,26 @@ exports.searchUsers = async (req, res, next) => {
       next(err);
    }
 };
+
+// @desc    Get suggested users
+// @route   GET /api/users/suggested
+// @access  Private
+exports.getSuggestedUsers = async (req, res, next) => {
+   try {
+      // Get users that the current user is not following and not the current user
+      const suggestedUsers = await User.find({
+         _id: {
+            $nin: [...req.user.following, req.user.id], // Exclude users being followed and current user
+         },
+      })
+         .select("name username bio profileImage followers following")
+         .limit(10);
+
+      res.status(200).json({
+         success: true,
+         data: suggestedUsers,
+      });
+   } catch (err) {
+      next(err);
+   }
+};
