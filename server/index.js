@@ -1,40 +1,29 @@
 const express = require("express");
 const cors = require("cors");
-const morgan = require("morgan");
+const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
-const connectDB = require("./config/db");
-const errorHandler = require("./middleware/error");
-const Message = require("./models/Message");
-
-// Route files
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const postRoutes = require("./routes/posts");
 const groupRoutes = require("./routes/groups");
-const eventRoutes = require("./routes/events");
-const marketplaceRoutes = require("./routes/marketplace");
-const messageRoutes = require("./routes/messages");
-const notificationRoutes = require("./routes/notifications");
 const chatRoutes = require("./routes/chats");
 
-// Load environment variables
 dotenv.config();
-
-// Initialize Express app
 const app = express();
 const server = http.createServer(app);
-
-// Initialize Socket.IO
 const io = new Server(server, {
    cors: {
-      origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+      origin: process.env.CLIENT_URL || "http://localhost:5173",
       methods: ["GET", "POST"],
       credentials: true,
    },
 });
+
+// Middleware
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+app.use(express.json());
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
@@ -94,60 +83,23 @@ io.on("connection", (socket) => {
    });
 });
 
-// Middleware
-app.use(
-   cors({
-      origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-   }),
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev"));
-
-// Log all requests for debugging
-app.use((req, res, next) => {
-   console.log(`${req.method} ${req.url}`);
-   next();
-});
-
-// Set up static folder for uploads
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Mount routers
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/groups", groupRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/marketplace", marketplaceRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/notifications", notificationRoutes);
 app.use("/api/chats", chatRoutes);
 
-// Mount nested routes
-app.use("/api/groups/:groupId/events", eventRoutes);
-app.use("/api/users/:userId/marketplace", marketplaceRoutes);
-
-// Base route
-app.get("/", (req, res) => {
-   res.json({ message: "Welcome to MapleConnect API" });
-});
-
-// Error handling middleware
-app.use(errorHandler);
-
-// Connect to MongoDB and start server
-const PORT = process.env.PORT || 5001;
-
-connectDB()
+// MongoDB connection
+mongoose
+   .connect(process.env.MONGODB_URI)
    .then(() => {
+      console.log("Connected to MongoDB");
+      const PORT = process.env.PORT || 5000;
       server.listen(PORT, () => {
          console.log(`Server running on port ${PORT}`);
       });
    })
    .catch((err) => {
-      console.error("Failed to start server", err);
+      console.error("MongoDB connection error:", err);
    });

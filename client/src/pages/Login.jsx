@@ -12,6 +12,7 @@ const Login = () => {
    const [formData, setFormData] = useState({
       email: "",
       password: "",
+      rememberMe: false,
    });
    const [formError, setFormError] = useState("");
    const [fieldErrors, setFieldErrors] = useState({});
@@ -23,16 +24,17 @@ const Login = () => {
    const navigate = useNavigate();
 
    const handleChange = (e) => {
+      const { name, type, value, checked } = e.target;
       setFormData({
          ...formData,
-         [e.target.name]: e.target.value,
+         [name]: type === "checkbox" ? checked : value,
       });
 
       // Clear field-specific error when user types
-      if (fieldErrors[e.target.name]) {
+      if (fieldErrors[name]) {
          setFieldErrors({
             ...fieldErrors,
-            [e.target.name]: "",
+            [name]: "",
          });
       }
    };
@@ -131,9 +133,11 @@ const Login = () => {
                <div className='flex items-center'>
                   <input
                      id='remember-me'
-                     name='remember-me'
+                     name='rememberMe'
                      type='checkbox'
                      className='h-4 w-4 text-maple-red focus:ring-maple-red border-gray-300 rounded'
+                     checked={formData.rememberMe}
+                     onChange={handleChange}
                   />
                   <label htmlFor='remember-me' className='ml-2 block text-sm text-gray-900'>
                      Remember me

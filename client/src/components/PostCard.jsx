@@ -19,8 +19,6 @@ const PostCard = ({ post, onUpdate }) => {
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
    const [commentToDelete, setCommentToDelete] = useState(null);
 
-   console.log(user);
-
    const handleLike = async () => {
       if (!user) {
          toast.error("Please login to like posts");
@@ -389,6 +387,7 @@ const PostCard = ({ post, onUpdate }) => {
          <div className='px-4 py-3 border-t border-gray-100'>
             {post.comments && post.comments.length > 0 && (
                <div className='mb-4 space-y-2'>
+                  {console.log("post", post.comments)}
                   {post.comments.map((comment) => (
                      <div key={comment._id} className='flex items-start group'>
                         <div className='flex-shrink-0'>
@@ -409,7 +408,7 @@ const PostCard = ({ post, onUpdate }) => {
                               <Link
                                  to={`/profile/${comment.user._id}`}
                                  className='text-gray-500 hover:text-maple-red transition-colors text-xs font-medium block mb-0.5'>
-                                 {comment.user.name}
+                                 {comment.user.username ? `@${comment.user.username}` : comment.user.name}
                               </Link>
                               <p className='text-gray-800 text-sm leading-relaxed'>{comment.content}</p>
                            </div>

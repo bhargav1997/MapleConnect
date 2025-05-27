@@ -65,3 +65,23 @@ export const getSuggestedUsers = async () => {
       throw error;
    }
 };
+
+// Get user's followers
+export const getFollowers = async (userId) => {
+   try {
+      const response = await api.get(`/users/${userId}/followers`);
+      return response.data;
+   } catch (error) {
+      throw error.response?.data || { message: "Failed to get followers" };
+   }
+};
+
+// Get user's following
+export const getFollowing = async (userId) => {
+   try {
+      const response = await api.get(`/users/${userId}/following`);
+      return response.data;
+   } catch (error) {
+      throw error.response?.data || { message: "Failed to get following" };
+   }
+};

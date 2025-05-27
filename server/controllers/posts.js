@@ -81,8 +81,8 @@ exports.getPosts = async (req, res, next) => {
 
       const posts = await Post.find({ user: { $in: following } })
          .sort("-createdAt")
-         .populate("user", "name profileImage")
-         .populate("comments.user", "name profileImage");
+         .populate("user", "name profileImage username")
+         .populate("comments.user", "name profileImage username");
 
       res.status(200).json({
          success: true,

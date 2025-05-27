@@ -1,12 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getUserById, getUserPosts, followUser, unfollowUser, updateProfileImage, updateUser } from "../services/userService";
+import {
+   getUserById,
+   getUserPosts,
+   followUser,
+   unfollowUser,
+   updateProfileImage,
+   updateUser,
+   getFollowers,
+   getFollowing,
+} from "../services/userService";
 import PostCard from "../components/PostCard";
 import { motion } from "framer-motion";
 import { getUserInitials } from "../utils/helpers";
 import defaultCoverImage from "../assets/default-cover.png";
 import defaultUserImage from "../assets/default-user.png";
+import UserListModal from "../components/common/UserListModal";
 
 const Profile = () => {
    const { id } = useParams();
@@ -30,6 +40,11 @@ const Profile = () => {
    const [usernameText, setUsernameText] = useState("");
    const [usernameSaving, setUsernameSaving] = useState(false);
    const [usernameError, setUsernameError] = useState("");
+
+   const [showUserListModal, setShowUserListModal] = useState(false);
+   const [userListType, setUserListType] = useState("followers"); // or "following"
+   const [userList, setUserList] = useState([]);
+   const [userListLoading, setUserListLoading] = useState(false);
 
    const isCurrentUser = currentUser?.id === id;
    const isFollowing = user?.followers.includes(currentUser?.id);
@@ -174,6 +189,41 @@ const Profile = () => {
       } catch (err) {
          setError("Failed to update profile image. Please try again.");
          console.error("Error updating profile image:", err);
+      }
+   };
+
+   const handleOpenUserList = async (type) => {
+      setUserListType(type);
+      setShowUserListModal(true);
+      setUserListLoading(true);
+      try {
+         let users = [];
+         if (type === "followers") {
+            users = await getFollowers(user._id || user.id);
+         } else {
+            users = await getFollowing(user._id || user.id);
+         }
+         setUserList(users.data || users);
+      } catch (err) {
+         setUserList([]);
+      } finally {
+         setUserListLoading(false);
+      }
+   };
+
+   const handleFollowToggle = async (targetUser) => {
+      try {
+         if (currentUser.following.includes(targetUser._id)) {
+            await unfollowUser(targetUser._id);
+         } else {
+            await followUser(targetUser._id);
+         }
+         // Refresh the list
+         handleOpenUserList(userListType);
+         // Optionally refresh current user data
+         fetchUserData();
+      } catch (err) {
+         // Optionally show error
       }
    };
 
@@ -393,14 +443,20 @@ const Profile = () => {
                   )}
 
                   <div className='mt-6 grid grid-cols-3 gap-3'>
-                     <div className='bg-gray-50 px-3 py-2 rounded-lg text-center'>
+                     <button
+                        className='bg-gray-50 px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-maple-red transition-all'
+                        onClick={() => handleOpenUserList("following")}
+                        type='button'>
                         <div className='font-semibold text-charcoal-gray text-lg'>{user.following.length}</div>
                         <div className='text-gray-500 text-sm'>Following</div>
-                     </div>
-                     <div className='bg-gray-50 px-3 py-2 rounded-lg text-center'>
+                     </button>
+                     <button
+                        className='bg-gray-50 px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-maple-red transition-all'
+                        onClick={() => handleOpenUserList("followers")}
+                        type='button'>
                         <div className='font-semibold text-charcoal-gray text-lg'>{user.followers.length}</div>
                         <div className='text-gray-500 text-sm'>Followers</div>
-                     </div>
+                     </button>
                      <div className='bg-gray-50 px-3 py-2 rounded-lg text-center'>
                         <div className='font-semibold text-charcoal-gray text-lg'>{posts.length}</div>
                         <div className='text-gray-500 text-sm'>Posts</div>
@@ -788,6 +844,15 @@ const Profile = () => {
                </motion.div>
             )}
          </div>
+         <UserListModal
+            open={showUserListModal}
+            onClose={() => setShowUserListModal(false)}
+            title={userListType === "followers" ? "Followers" : "Following"}
+            users={userList}
+            onFollowToggle={handleFollowToggle}
+            currentUserFollowing={currentUser.following}
+            loading={userListLoading}
+         />
       </motion.div>
    );
 };

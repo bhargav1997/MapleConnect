@@ -1,41 +1,48 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const MessageSchema = new mongoose.Schema(
-  {
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    recipient: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    content: {
-      type: String,
-      required: [true, 'Please add a message'],
-      maxlength: [1000, 'Message cannot be more than 1000 characters']
-    },
-    attachments: [
-      {
-        type: String
-      }
-    ],
-    read: {
-      type: Boolean,
-      default: false
-    },
-    readAt: {
-      type: Date
-    }
-  },
-  {
-    timestamps: true
-  }
+const messageSchema = new mongoose.Schema(
+   {
+      sender: {
+         type: mongoose.Schema.Types.ObjectId,
+         ref: "User",
+         required: true,
+      },
+      receiver: {
+         type: mongoose.Schema.Types.ObjectId,
+         ref: "User",
+         required: true,
+      },
+      content: {
+         type: String,
+         required: true,
+      },
+      type: {
+         type: String,
+         enum: ["text", "image", "file"],
+         default: "text",
+      },
+      readBy: [
+         {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+         },
+      ],
+      deletedFor: [
+         {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+         },
+      ],
+   },
+   {
+      timestamps: true,
+   },
 );
 
-// Create a compound index on sender and recipient for faster queries
-MessageSchema.index({ sender: 1, recipient: 1 });
+// Index for faster queries
+messageSchema.index({ sender: 1, receiver: 1 });
+messageSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Message', MessageSchema);
+const Message = mongoose.model("Message", messageSchema);
+
+module.exports = Message;

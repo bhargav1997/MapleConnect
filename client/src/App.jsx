@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 import { AuthProvider } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext";
 
 // Components
 import MainLayout from "./components/layout/MainLayout";
@@ -42,47 +43,49 @@ function App() {
       <Provider store={store}>
          <Router>
             <AuthProvider>
-               <MainLayout>
-                  <Routes>
-                     {/* Public Routes that redirect to Home if authenticated */}
-                     <Route element={<AuthRoute />}>
-                        <Route path='/' element={<LandingPage />} />
-                        <Route path='/login' element={<Login />} />
-                        <Route path='/register' element={<Register />} />
-                        <Route path='/forgot-password' element={<ForgotPassword />} />
-                        <Route path='/reset-password/:token' element={<ResetPassword />} />
-                        <Route path='/otp-verify' element={<LoginOTPVerification />} />
-                     </Route>
+               <SocketProvider>
+                  <MainLayout>
+                     <Routes>
+                        {/* Public Routes that redirect to Home if authenticated */}
+                        <Route element={<AuthRoute />}>
+                           <Route path='/' element={<LandingPage />} />
+                           <Route path='/login' element={<Login />} />
+                           <Route path='/register' element={<Register />} />
+                           <Route path='/forgot-password' element={<ForgotPassword />} />
+                           <Route path='/reset-password/:token' element={<ResetPassword />} />
+                           <Route path='/otp-verify' element={<LoginOTPVerification />} />
+                        </Route>
 
-                     {/* Support Routes - accessible to all */}
-                     <Route path='/support' element={<Support />} />
-                     <Route path='/support/help-center' element={<HelpCenter />} />
-                     <Route path='/support/community-guidelines' element={<CommunityGuidelines />} />
-                     <Route path='/support/privacy-policy' element={<PrivacyPolicy />} />
-                     <Route path='/support/terms-of-service' element={<TermsOfService />} />
+                        {/* Support Routes - accessible to all */}
+                        <Route path='/support' element={<Support />} />
+                        <Route path='/support/help-center' element={<HelpCenter />} />
+                        <Route path='/support/community-guidelines' element={<CommunityGuidelines />} />
+                        <Route path='/support/privacy-policy' element={<PrivacyPolicy />} />
+                        <Route path='/support/terms-of-service' element={<TermsOfService />} />
 
-                     {/* Protected Routes - require authentication */}
-                     <Route element={<PrivateRoute />}>
-                        <Route path='/home' element={<Home />} />
-                        <Route path='/search' element={<SearchResults />} />
-                        <Route path='/profile/:id' element={<Profile />} />
-                        <Route path='/groups' element={<Groups />} />
-                        <Route path='/groups/:id' element={<GroupDetail />} />
-                        <Route path='/events' element={<Events />} />
-                        <Route path='/events/:id' element={<EventDetail />} />
-                        <Route path='/marketplace' element={<Marketplace />} />
-                        <Route path='/marketplace/:id' element={<ListingDetail />} />
-                        <Route path='/messages' element={<Messages />} />
-                        <Route path='/messages/:userId' element={<Messages />} />
-                        <Route path='/notifications' element={<Notifications />} />
-                        <Route path='/settings' element={<Settings />} />
-                        <Route path='/discover' element={<Discover />} />
-                     </Route>
+                        {/* Protected Routes - require authentication */}
+                        <Route element={<PrivateRoute />}>
+                           <Route path='/home' element={<Home />} />
+                           <Route path='/search' element={<SearchResults />} />
+                           <Route path='/profile/:id' element={<Profile />} />
+                           <Route path='/groups' element={<Groups />} />
+                           <Route path='/groups/:id' element={<GroupDetail />} />
+                           <Route path='/events' element={<Events />} />
+                           <Route path='/events/:id' element={<EventDetail />} />
+                           <Route path='/marketplace' element={<Marketplace />} />
+                           <Route path='/marketplace/:id' element={<ListingDetail />} />
+                           <Route path='/messages' element={<Messages />} />
+                           <Route path='/messages/:userId' element={<Messages />} />
+                           <Route path='/notifications' element={<Notifications />} />
+                           <Route path='/settings' element={<Settings />} />
+                           <Route path='/discover' element={<Discover />} />
+                        </Route>
 
-                     {/* 404 Route */}
-                     <Route path='*' element={<NotFound />} />
-                  </Routes>
-               </MainLayout>
+                        {/* 404 Route */}
+                        <Route path='*' element={<NotFound />} />
+                     </Routes>
+                  </MainLayout>
+               </SocketProvider>
             </AuthProvider>
          </Router>
       </Provider>
