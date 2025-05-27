@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getSuggestedUsers, followUser, unfollowUser } from "../../services/userService";
+import { getSuggestedUsers, followUser, unfollowUser, getUserById } from "../../services/userService";
 import toast from "react-hot-toast";
 import UserAvatar from "../common/UserAvatar";
+import { useDispatch } from "react-redux";
+import { updateUser } from "../../redux/slices/authSlice";
+import { useAuth } from "../../context/AuthContext";
 
 const PeopleYouMayKnow = () => {
    const [suggestedUsers, setSuggestedUsers] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
+   const dispatch = useDispatch();
+   const { user } = useAuth();
 
    const fetchSuggestedUsers = async () => {
       try {
@@ -26,7 +31,18 @@ const PeopleYouMayKnow = () => {
    const handleFollow = async (userId) => {
       try {
          await followUser(userId);
-         setSuggestedUsers((prev) => prev.filter((user) => user._id !== userId));
+         // Update user state in Redux
+         const updatedUser = {
+            ...user,
+            following: [...user.following, userId],
+         };
+         dispatch(updateUser(updatedUser));
+         // Fetch updated user data
+         const response = await getUserById(userId);
+         if (response.success) {
+            // Update the user in the suggested users list
+            setSuggestedUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, followers: response.data.followers } : u)));
+         }
          toast.success("Successfully followed user!");
       } catch (err) {
          console.error("Error following user:", err);

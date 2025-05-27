@@ -21,6 +21,8 @@ import {
 import EventCard from "../components/events/EventCard";
 import CreateEventForm from "../components/events/CreateEventForm";
 import EditGroupForm from "../components/groups/EditGroupForm";
+import defaultCoverImage from "../assets/default-cover.png";
+import defaultUserImage from "../assets/default-user.png";
 
 const GroupDetail = () => {
    const { id } = useParams();
@@ -170,9 +172,11 @@ const GroupDetail = () => {
          {/* Group Header */}
          <div className='bg-white rounded-lg shadow-md overflow-hidden mb-6'>
             <div className='h-48 bg-gray-300 relative'>
-               {group.coverImage && (
-                  <img src={`http://localhost:5000/uploads/${group.coverImage}`} alt={group.name} className='w-full h-full object-cover' />
-               )}
+               <img
+                  src={group.coverImage ? `http://localhost:5000/uploads/${group.coverImage}` : defaultCoverImage}
+                  alt={group.name}
+                  className='w-full h-full object-cover'
+               />
             </div>
 
             <div className='px-4 py-5 sm:px-6'>
@@ -180,7 +184,7 @@ const GroupDetail = () => {
                   <div className='flex-shrink-0 -mt-16 md:mr-6 relative'>
                      <div className='h-24 w-24 rounded-full overflow-hidden border-4 border-white bg-gray-200 relative'>
                         <img
-                           src={group.image ? `http://localhost:5000/uploads/${group.image}` : "https://via.placeholder.com/150"}
+                           src={group.image ? `http://localhost:5000/uploads/${group.image}` : defaultUserImage}
                            alt={group.name}
                            className='h-full w-full object-cover'
                         />
@@ -340,7 +344,7 @@ const GroupDetail = () => {
                                     src={
                                        group.creator.profileImage
                                           ? `http://localhost:5000/uploads/${group.creator.profileImage}`
-                                          : "https://via.placeholder.com/150"
+                                          : defaultUserImage
                                     }
                                     alt={group.creator.name}
                                  />
@@ -496,11 +500,7 @@ const GroupDetail = () => {
                                  <Link to={`/profile/${admin._id || admin}`} className='flex items-center flex-1'>
                                     <img
                                        className='h-10 w-10 rounded-full mr-3'
-                                       src={
-                                          admin.profileImage
-                                             ? `http://localhost:5000/uploads/${admin.profileImage}`
-                                             : "https://via.placeholder.com/150"
-                                       }
+                                       src={admin.profileImage ? `http://localhost:5000/uploads/${admin.profileImage}` : defaultUserImage}
                                        alt={admin.name}
                                     />
                                     <div>
@@ -521,11 +521,7 @@ const GroupDetail = () => {
                                  <Link to={`/profile/${member._id || member}`} className='flex items-center flex-1'>
                                     <img
                                        className='h-10 w-10 rounded-full mr-3'
-                                       src={
-                                          member.profileImage
-                                             ? `http://localhost:5000/uploads/${member.profileImage}`
-                                             : "https://via.placeholder.com/150"
-                                       }
+                                       src={member.profileImage ? `http://localhost:5000/uploads/${member.profileImage}` : defaultUserImage}
                                        alt={member.name}
                                     />
                                     <div>

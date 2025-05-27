@@ -5,6 +5,8 @@ import { getUserById, getUserPosts, followUser, unfollowUser, updateProfileImage
 import PostCard from "../components/PostCard";
 import { motion } from "framer-motion";
 import { getUserInitials } from "../utils/helpers";
+import defaultCoverImage from "../assets/default-cover.png";
+import defaultUserImage from "../assets/default-user.png";
 
 const Profile = () => {
    const { id } = useParams();
@@ -149,7 +151,11 @@ const Profile = () => {
          } else {
             await followUser(id);
          }
-         fetchUserData();
+         // Fetch updated user data
+         const response = await getUserById(id);
+         if (response.success) {
+            setUser(response.data);
+         }
       } catch (err) {
          setError("Failed to update follow status. Please try again.");
          console.error("Error following/unfollowing:", err);
@@ -239,33 +245,19 @@ const Profile = () => {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className='max-w-4xl mx-auto px-4 py-8'>
          {/* Profile Header */}
          <div className='bg-white rounded-xl shadow-sm overflow-hidden mb-6'>
-            <div className='h-48 bg-gradient-to-r from-maple-red/90 to-maple-red/70 relative'>
-               {/* Decorative maple leaves */}
-               <div className='absolute inset-0 overflow-hidden opacity-10'>
-                  <div className='absolute top-10 left-[10%] w-20 h-20 animate-float-slow'>
-                     <svg viewBox='0 0 24 24' fill='white'>
-                        <path d='M12,2C11.8,2 11.6,2.1 11.4,2.3L9.6,4.1L11.5,6L9.9,7.6L8,5.7L6.1,7.6L8,9.5L6.4,11.1L4.6,9.3C4.2,8.9 3.5,8.9 3.1,9.3C2.7,9.7 2.7,10.4 3.1,10.8L4.9,12.6L3.5,14L4.9,15.4L6.3,14L8.1,15.8C8.5,16.2 9.2,16.2 9.6,15.8C10,15.4 10,14.7 9.6,14.3L7.8,12.5L9.4,10.9L11.3,12.8L13.1,10.9L11.2,9L12.8,7.4L14.6,9.2C15,9.6 15.7,9.6 16.1,9.2C16.5,8.8 16.5,8.1 16.1,7.7L14.3,5.9L15.7,4.5L14.3,3.1L12.9,4.5L11.1,2.7C10.9,2.1 10.5,2 12,2Z' />
-                     </svg>
-                  </div>
-                  <div className='absolute top-[30%] right-[15%] w-32 h-32 animate-float'>
-                     <svg viewBox='0 0 24 24' fill='white'>
-                        <path d='M12,2C11.8,2 11.6,2.1 11.4,2.3L9.6,4.1L11.5,6L9.9,7.6L8,5.7L6.1,7.6L8,9.5L6.4,11.1L4.6,9.3C4.2,8.9 3.5,8.9 3.1,9.3C2.7,9.7 2.7,10.4 3.1,10.8L4.9,12.6L3.5,14L4.9,15.4L6.3,14L8.1,15.8C8.5,16.2 9.2,16.2 9.6,15.8C10,15.4 10,14.7 9.6,14.3L7.8,12.5L9.4,10.9L11.3,12.8L13.1,10.9L11.2,9L12.8,7.4L14.6,9.2C15,9.6 15.7,9.6 16.1,9.2C16.5,8.8 16.5,8.1 16.1,7.7L14.3,5.9L15.7,4.5L14.3,3.1L12.9,4.5L11.1,2.7C10.9,2.1 10.5,2 12,2Z' />
-                     </svg>
-                  </div>
-               </div>
+            <div className='h-48 bg-gray-300 relative'>
+               <img src={user?.coverImage ? user.coverImage : defaultCoverImage} alt={user?.name} className='w-full h-full object-cover' />
             </div>
             <div className='px-6 py-6 sm:px-8'>
                <div className='flex flex-col'>
                   <div className='flex flex-col sm:flex-row'>
                      <div className='relative -mt-24 mb-4 sm:mb-0 flex-shrink-0'>
                         <div className='h-32 w-32 rounded-full overflow-hidden border-4 border-white bg-gray-100 shadow-md relative'>
-                           {/* Avatar display area */}
-                           <div
-                              id='avatarDisplay'
-                              className='h-full w-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                              <span className='text-3xl font-bold text-white'>{getUserInitials(user?.name)}</span>
-                           </div>
-
+                           <img
+                              src={user?.profileImage ? user.profileImage : defaultUserImage}
+                              alt={user?.name}
+                              className='h-full w-full object-cover'
+                           />
                            {/* Hover label with circular camera icon */}
                            <label className='absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer'>
                               <div className='h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-md'>

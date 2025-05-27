@@ -6,6 +6,7 @@ import PostCard from "../components/PostCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import PeopleYouMayKnow from "../components/suggestions/PeopleYouMayKnow";
+import defaultUserImage from "../assets/default-user.png";
 
 const Home = () => {
    const { user, isAuthenticated } = useAuth();
@@ -158,17 +159,15 @@ const Home = () => {
                         </svg>
                      </div>
                   </div>
-
+                  {console.log("user", user)}
                   <div className='px-6 pt-0 pb-6 relative'>
                      <div className='flex flex-col items-center'>
                         <div className='w-24 h-24 rounded-full bg-white mb-3 overflow-hidden border-4 border-white shadow-md -mt-12'>
-                           {user?.profileImage ? (
-                              <img src={user.profileImage} alt={user.name} className='w-full h-full object-cover' />
-                           ) : (
-                              <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                                 <span className='text-2xl font-bold text-white'>{user?.name?.charAt(0).toUpperCase() || "M"}</span>
-                              </div>
-                           )}
+                           <img
+                              src={user?.profileImage ? user.profileImage : defaultUserImage}
+                              alt={user.name}
+                              className='w-full h-full object-cover'
+                           />
                         </div>
                         <h3 className='text-lg font-bold text-charcoal-gray'>{user?.name || "MapleConnect User"}</h3>
                         <p className='text-sm text-gray-500 mb-3'>
@@ -259,13 +258,11 @@ const Home = () => {
                   <div className='p-4'>
                      <div className='flex items-center space-x-3'>
                         <div className='w-10 h-10 rounded-full bg-gray-100 overflow-hidden'>
-                           {user?.profileImage ? (
-                              <img src={user.profileImage} alt={user.name} className='w-full h-full object-cover' />
-                           ) : (
-                              <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                                 <span className='text-sm font-bold text-white'>{user?.name?.charAt(0).toUpperCase() || "M"}</span>
-                              </div>
-                           )}
+                           <img
+                              src={user.profileImage ? user.profileImage : defaultUserImage}
+                              alt={user.name}
+                              className='w-full h-full object-cover'
+                           />
                         </div>
                         <button
                            onClick={() => setIsPostModalOpen(true)}

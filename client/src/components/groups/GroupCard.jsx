@@ -1,51 +1,23 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
+import defaultCoverImage from "../../assets/default-cover.png";
+import defaultUserImage from "../../assets/default-user.png";
 
 const GroupCard = ({ group }) => {
    const { user } = useAuth();
    const isMember = group.members.includes(user?.id);
 
-   // Default cover image if none provided
-   const defaultCoverImages = [
-      "https://images.unsplash.com/photo-1596386461350-326ccb383e9f?q=80&w=2069&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=2069&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=2074&auto=format&fit=crop",
-   ];
-
-   // Use group ID to consistently select the same default image for a group
-   const defaultCoverImage = defaultCoverImages[parseInt(group._id.slice(-2), 16) % defaultCoverImages.length];
-
    return (
       <motion.div
-         whileHover={{ y: -5 }}
-         className='bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300'>
-         <div className='h-40 bg-gray-200 relative overflow-hidden'>
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 1.5 }} className='w-full h-full'>
-               <img
-                  src={group.coverImage ? `http://localhost:5000/uploads/${group.coverImage}` : defaultCoverImage}
-                  alt={group.name}
-                  className='w-full h-full object-cover'
-               />
-               <div className='absolute inset-0 bg-gradient-to-t from-black/40 to-transparent'></div>
-            </motion.div>
-
-            {group.isPrivate && (
-               <div className='absolute top-3 right-3'>
-                  <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-black/30 text-white backdrop-blur-sm'>
-                     <svg xmlns='http://www.w3.org/2000/svg' className='h-3 w-3 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                        <path
-                           strokeLinecap='round'
-                           strokeLinejoin='round'
-                           strokeWidth={2}
-                           d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
-                        />
-                     </svg>
-                     Private
-                  </span>
-               </div>
-            )}
+         whileHover={{ scale: 1.02 }}
+         className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow duration-200'>
+         <div className='h-40 bg-gray-200 relative'>
+            <img
+               src={group.coverImage ? group.coverImage : defaultUserImage}
+               alt={group.name}
+               className='w-full h-full object-cover'
+            />
          </div>
 
          <div className='p-5'>
@@ -54,7 +26,7 @@ const GroupCard = ({ group }) => {
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   className='h-16 w-16 rounded-full overflow-hidden border-4 border-white bg-gray-200 -mt-12 mr-4 shadow-md'>
                   <img
-                     src={group.image ? `http://localhost:5000/uploads/${group.image}` : "https://via.placeholder.com/150"}
+                     src={group.image ? group.image : defaultCoverImage}
                      alt={group.name}
                      className='h-full w-full object-cover'
                   />

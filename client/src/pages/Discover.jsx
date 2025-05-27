@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { searchUsers, followUser, unfollowUser, getSuggestedUsers } from "../services/userService";
+import { searchUsers, followUser, unfollowUser, getSuggestedUsers, getUserById } from "../services/userService";
 import { getUserInitials } from "../utils/helpers";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -107,6 +107,12 @@ const Discover = () => {
             };
             dispatch(updateUser(updatedUser));
             toast.success("Followed successfully");
+         }
+         // Fetch updated user data
+         const response = await getUserById(userId);
+         if (response.success) {
+            // Update the user in the users list
+            setUsers((prevUsers) => prevUsers.map((u) => (u._id === userId ? { ...u, followers: response.data.followers } : u)));
          }
       } catch (error) {
          console.error("Error following/unfollowing user:", error);

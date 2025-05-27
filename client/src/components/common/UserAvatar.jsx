@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { getUserInitials } from "../../utils/helpers";
+import defaultUserImage from "../../assets/default-user.png";
+
 
 const UserAvatar = ({ user, size = "md", showLink = true, className = "", containerClassName = "" }) => {
    const [imageError, setImageError] = useState(false);
@@ -14,27 +16,21 @@ const UserAvatar = ({ user, size = "md", showLink = true, className = "", contai
 
    const renderAvatar = () => {
       if (!user?.profileImage || imageError) {
-         return (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red">
-               <span className="text-white font-bold">{getUserInitials(user?.name || "U")}</span>
-            </div>
-         );
+         return <img src={defaultUserImage} alt={user?.name || "User"} className='w-full h-full object-cover' />;
       }
 
       return (
          <img
             src={user.profileImage}
             alt={user.name || "User"}
-            className="w-full h-full object-cover"
+            className='w-full h-full object-cover'
             onError={() => setImageError(true)}
          />
       );
    };
 
    const avatarContent = (
-      <div className={`${sizeClasses[size]} rounded-full bg-gray-100 overflow-hidden ${className}`}>
-         {renderAvatar()}
-      </div>
+      <div className={`${sizeClasses[size]} rounded-full bg-gray-100 overflow-hidden ${className}`}>{renderAvatar()}</div>
    );
 
    if (showLink && user?._id) {

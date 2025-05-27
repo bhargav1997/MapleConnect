@@ -47,11 +47,11 @@ const UserSchema = new mongoose.Schema(
       },
       profileImage: {
          type: String,
-         default: "default-profile.jpg",
+         default: null,
       },
       coverImage: {
          type: String,
-         default: "default-cover.jpg",
+         default: null,
       },
       following: [
          {
