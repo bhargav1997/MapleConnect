@@ -14,19 +14,37 @@ export const useSocket = () => {
    return context;
 };
 
+// Utility to get the correct socket URL (strip /api if present)
+const getSocketUrl = () => {
+   let url = api.defaults.baseURL;
+   if (url.endsWith("/api")) {
+      url = url.replace(/\/api$/, "");
+   }
+   return url;
+};
+
 export const SocketProvider = ({ children }) => {
    const [socket, setSocket] = useState(null);
    const { user } = useAuth();
 
    useEffect(() => {
       if (user) {
-         const newSocket = io(api.defaults.baseURL, {
+         const newSocket = io(getSocketUrl(), {
             withCredentials: true,
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
          });
 
          newSocket.on("connect", () => {
             console.log("Socket connected");
-            newSocket.emit("join", user.id);
+            newSocket.emit("join", user._id);
+         });
+
+         newSocket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
+            toast.error("Connection error. Please try again.");
          });
 
          newSocket.on("disconnect", () => {
@@ -41,27 +59,29 @@ export const SocketProvider = ({ children }) => {
          setSocket(newSocket);
 
          return () => {
-            newSocket.close();
+            if (newSocket) {
+               newSocket.close();
+            }
          };
       }
    }, [user]);
 
    const sendMessage = (receiverId, message) => {
       if (socket) {
+         console.log("Sending message:", { sender: user._id ? user._id : user.id, receiver: receiverId, message });
          socket.emit("private message", {
-            senderId: user.id,
-            receiverId,
+            sender: user._id ? user._id : user.id,
+            receiver: receiverId,
             message,
          });
       }
    };
 
-   const sendTypingStatus = (receiverId, isTyping) => {
+   const sendTypingStatus = (receiverId) => {
       if (socket) {
          socket.emit("typing", {
-            senderId: user.id,
+            senderId: user._id,
             receiverId,
-            isTyping,
          });
       }
    };
@@ -70,7 +90,7 @@ export const SocketProvider = ({ children }) => {
       if (socket) {
          socket.emit("mark as read", {
             senderId,
-            receiverId: user.id,
+            receiverId: user._id,
             messageIds,
          });
       }

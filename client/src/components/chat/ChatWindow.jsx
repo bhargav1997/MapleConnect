@@ -19,7 +19,7 @@ const ChatWindow = () => {
    const [chatUser, setChatUser] = useState(null);
    const messagesEndRef = useRef(null);
    const typingTimeoutRef = useRef(null);
-   const { socket } = useSocket();
+   const { socket, sendMessage } = useSocket();
    const { user } = useAuth();
    const navigate = useNavigate();
 
@@ -61,7 +61,7 @@ const ChatWindow = () => {
       fetchMessages();
 
       if (socket) {
-         socket.emit("join room", userId);
+         socket.emit("join", userId);
 
          socket.on("new message", (data) => {
             if (data.senderId === userId || data.receiverId === userId) {
@@ -95,7 +95,7 @@ const ChatWindow = () => {
 
       return () => {
          if (socket) {
-            socket.emit("leave room", userId);
+            socket.emit("leave", userId);
             socket.off("new message");
             socket.off("typing");
             socket.off("message read");
@@ -110,10 +110,7 @@ const ChatWindow = () => {
       e.preventDefault();
       if (!newMessage.trim()) return;
 
-      socket.emit("private message", {
-         receiverId: userId,
-         content: newMessage.trim(),
-      });
+      sendMessage(userId, newMessage.trim());
 
       setNewMessage("");
    };
@@ -132,6 +129,14 @@ const ChatWindow = () => {
       } catch (err) {
          console.error("Error deleting message:", err);
          toast.error(err.message || "Failed to delete message");
+      }
+   };
+
+   // Helper to check if the message is sent by the current user
+   const isMyMessage = (message) => {
+      if (!message.sender) return false;
+      if (typeof message.sender === "object") {
+         return message.sender.id === user._id || message.sender.id === user.id;
       }
    };
 
@@ -199,22 +204,22 @@ const ChatWindow = () => {
          <div className='flex-1 min-h-0 overflow-y-auto px-4 py-6 bg-gray-50 space-y-4'>
             <AnimatePresence>
                {messages.map((message) => (
-                  <div key={message._id} className={`flex ${message.sender === user._id ? "justify-end" : "justify-start"}`}>
+                  <div key={message._id} className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"}`}>
                      <div
                         className={`flex items-end space-x-2 max-w-[70%] ${
-                           message.sender === user._id ? "flex-row-reverse space-x-reverse" : ""
+                           isMyMessage(message) ? "flex-row-reverse space-x-reverse" : ""
                         }`}>
-                        <UserAvatar user={message.sender === user._id ? user : chatUser || { _id: userId }} size='sm' />
+                        <UserAvatar user={isMyMessage(message) ? user : chatUser || { _id: userId }} size='sm' />
                         <div className='relative group'>
                            <div
                               className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm break-words ${
-                                 message.sender === user._id
+                                 isMyMessage(message)
                                     ? "bg-maple-red text-white rounded-br-none"
-                                    : "bg-white text-charcoal-gray border border-gray-100 rounded-bl-none"
+                                    : "bg-gray-200 text-charcoal-gray border border-gray-100 rounded-bl-none"
                               }`}>
                               <p>{message.content}</p>
                            </div>
-                           {message.sender === user._id && (
+                           {isMyMessage(message) && (
                               <button
                                  onClick={() => handleDeleteMessage(message._id)}
                                  className='absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50'>

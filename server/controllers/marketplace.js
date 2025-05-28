@@ -1,17 +1,12 @@
 const Marketplace = require('../models/Marketplace');
 
-// @desc    Create new marketplace listing
+// @desc    Create marketplace listing
 // @route   POST /api/marketplace
 // @access  Private
 exports.createListing = async (req, res, next) => {
   try {
     // Add seller to req.body
     req.body.seller = req.user.id;
-    
-    // Handle listing images
-    if (req.files && req.files.length > 0) {
-      req.body.images = req.files.map(file => file.filename);
-    }
     
     const listing = await Marketplace.create(req.body);
     
@@ -150,11 +145,6 @@ exports.updateListing = async (req, res, next) => {
         success: false,
         error: 'Not authorized to update this listing'
       });
-    }
-    
-    // Handle listing images
-    if (req.files && req.files.length > 0) {
-      req.body.images = req.files.map(file => file.filename);
     }
     
     listing = await Marketplace.findByIdAndUpdate(req.params.id, req.body, {

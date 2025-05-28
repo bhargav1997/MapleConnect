@@ -1,29 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { createListing } from "../../services/marketplaceService";
-import { createListingStart, createListingSuccess, createListingFailure } from "../../redux/slices/marketplaceSlice";
+import { updateListing } from "../../services/marketplaceService";
+import { updateListingStart, updateListingSuccess, updateListingFailure } from "../../redux/slices/marketplaceSlice";
 
-const CreateListingForm = ({ onClose }) => {
+const EditListingForm = ({ listing, onClose }) => {
    const dispatch = useDispatch();
    const navigate = useNavigate();
    const { isLoading, error } = useSelector((state) => state.marketplace);
 
    const [formData, setFormData] = useState({
-      title: "",
-      description: "",
-      price: "",
-      category: "",
-      condition: "",
-      location: "",
-      isDeliveryAvailable: false,
-      images: [""], // Start with one image URL field
+      title: listing.title || "",
+      description: listing.description || "",
+      price: listing.price || "",
+      category: listing.category || "",
+      condition: listing.condition || "",
+      location: listing.location || "",
+      isDeliveryAvailable: listing.isDeliveryAvailable || false,
+      images: listing.images?.length > 0 ? [...listing.images] : [""],
    });
 
    const [formError, setFormError] = useState("");
 
    const categories = ["Electronics", "Furniture", "Clothing", "Books", "Sports", "Toys", "Vehicles", "Services", "Other"];
-
    const conditions = ["New", "Like New", "Good", "Fair", "Poor"];
 
    const handleChange = (e) => {
@@ -83,7 +82,7 @@ const CreateListingForm = ({ onClose }) => {
       }
 
       try {
-         dispatch(createListingStart());
+         dispatch(updateListingStart());
 
          const listingData = {
             ...formData,
@@ -91,8 +90,8 @@ const CreateListingForm = ({ onClose }) => {
             images: validImages,
          };
 
-         const response = await createListing(listingData);
-         dispatch(createListingSuccess(response.data));
+         const response = await updateListing(listing._id, listingData);
+         dispatch(updateListingSuccess(response.data));
 
          if (onClose) {
             onClose();
@@ -100,8 +99,8 @@ const CreateListingForm = ({ onClose }) => {
             navigate(`/marketplace/${response.data._id}`);
          }
       } catch (error) {
-         const message = error.response && error.response.data.error ? error.response.data.error : "Failed to create listing";
-         dispatch(createListingFailure(message));
+         const message = error.response && error.response.data.error ? error.response.data.error : "Failed to update listing";
+         dispatch(updateListingFailure(message));
          setFormError(message);
       }
    };
@@ -109,7 +108,7 @@ const CreateListingForm = ({ onClose }) => {
    return (
       <div className='bg-white rounded-xl shadow-lg p-6'>
          <div className='flex justify-between items-center mb-6'>
-            <h2 className='text-2xl font-bold text-charcoal-gray'>Create New Listing</h2>
+            <h2 className='text-2xl font-bold text-charcoal-gray'>Edit Listing</h2>
             <button type='button' onClick={onClose} className='text-gray-400 hover:text-gray-500'>
                <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                   <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
@@ -309,7 +308,7 @@ const CreateListingForm = ({ onClose }) => {
                         ? "bg-maple-red/60 cursor-not-allowed"
                         : "bg-maple-red hover:bg-maple-red-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red transition-colors"
                   }`}>
-                  {isLoading ? "Creating..." : "Create Listing"}
+                  {isLoading ? "Updating..." : "Update Listing"}
                </button>
             </div>
          </form>
@@ -317,4 +316,4 @@ const CreateListingForm = ({ onClose }) => {
    );
 };
 
-export default CreateListingForm;
+export default EditListingForm;

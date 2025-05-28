@@ -1,32 +1,12 @@
-const express = require('express');
-const {
-  createListing,
-  getListings,
-  getListing,
-  updateListing,
-  deleteListing,
-  updateStatus,
-  getSellerListings
-} = require('../controllers/marketplace');
-const { protect } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const express = require("express");
+const router = express.Router();
+const { getListings, getListing, createListing, updateListing, deleteListing, updateStatus } = require("../controllers/marketplace");
+const { protect } = require("../middleware/auth");
 
-const router = express.Router({ mergeParams: true });
+router.route("/").get(getListings).post(protect, createListing);
 
-// Protect all routes
-router.use(protect);
+router.route("/:id").get(getListing).put(protect, updateListing).delete(protect, deleteListing);
 
-router
-  .route('/')
-  .get(getListings)
-  .post(upload.array('images', 5), createListing);
-
-router
-  .route('/:id')
-  .get(getListing)
-  .put(upload.array('images', 5), updateListing)
-  .delete(deleteListing);
-
-router.route('/:id/status').put(updateStatus);
+router.route("/:id/status").put(protect, updateStatus);
 
 module.exports = router;

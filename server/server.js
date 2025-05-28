@@ -49,27 +49,33 @@ io.on("connection", (socket) => {
    // Handle private messages
    socket.on("private message", async (data) => {
       try {
-         const { senderId, receiverId, message } = data;
+         console.log("Received private message data:", data);
+         const { sender, receiver, message } = data;
 
          // Save message to database
          const newMessage = new Message({
-            sender: senderId,
-            receiver: receiverId,
+            sender,
+            receiver,
             content: message,
             type: "text",
          });
          await newMessage.save();
 
+         // Populate sender and receiver
+         const populatedMessage = await Message.findById(newMessage._id)
+            .populate("sender", "name profileImage")
+            .populate("receiver", "name profileImage");
+
          // Emit to receiver's room
-         io.to(receiverId).emit("new message", {
-            senderId,
-            message: newMessage,
+         io.to(receiver).emit("new message", {
+            sender,
+            message: populatedMessage,
          });
 
          // Emit back to sender for confirmation
-         io.to(senderId).emit("message sent", {
-            receiverId,
-            message: newMessage,
+         io.to(sender).emit("message sent", {
+            receiver,
+            message: populatedMessage,
          });
       } catch (error) {
          console.error("Error handling private message:", error);
@@ -79,8 +85,8 @@ io.on("connection", (socket) => {
 
    // Handle typing status
    socket.on("typing", (data) => {
-      const { senderId, receiverId, isTyping } = data;
-      io.to(receiverId).emit("user typing", { senderId, isTyping });
+      const { senderId, receiverId } = data;
+      io.to(receiverId).emit("user typing", { senderId, isTyping: true });
    });
 
    // Handle read receipts

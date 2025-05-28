@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { createEvent } from "../../services/eventService";
 import { getAllGroups } from "../../services/groupService";
-import { motion } from "framer-motion";
 import { createEventStart, createEventSuccess, createEventFailure } from "../../redux/slices/eventSlice";
 
 const CreateEventForm = ({ onClose, groupId }) => {
@@ -19,10 +18,9 @@ const CreateEventForm = ({ onClose, groupId }) => {
       endDate: "",
       group: groupId || "",
       isPrivate: false,
+      image: "",
    });
 
-   const [image, setImage] = useState(null);
-   const [imagePreview, setImagePreview] = useState(null);
    const [formError, setFormError] = useState("");
    const [groups, setGroups] = useState([]);
 
@@ -47,14 +45,6 @@ const CreateEventForm = ({ onClose, groupId }) => {
          ...formData,
          [name]: type === "checkbox" ? checked : value,
       });
-   };
-
-   const handleImageChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-         setImage(file);
-         setImagePreview(URL.createObjectURL(file));
-      }
    };
 
    const handleSubmit = async (e) => {
@@ -87,7 +77,6 @@ const CreateEventForm = ({ onClose, groupId }) => {
 
          const eventData = {
             ...formData,
-            image,
          };
 
          const response = await createEvent(eventData);
@@ -106,11 +95,7 @@ const CreateEventForm = ({ onClose, groupId }) => {
    };
 
    return (
-      <motion.div
-         initial={{ opacity: 0, y: 20 }}
-         animate={{ opacity: 1, y: 0 }}
-         exit={{ opacity: 0, y: 20 }}
-         className='bg-white rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto'>
+      <div className='bg-white rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto'>
          <div className='flex justify-between items-center mb-6'>
             <h2 className='text-2xl font-bold text-charcoal-gray'>Create New Event</h2>
             <button onClick={onClose} className='text-gray-400 hover:text-gray-500 focus:outline-none'>
@@ -121,10 +106,7 @@ const CreateEventForm = ({ onClose, groupId }) => {
          </div>
 
          {(formError || error) && (
-            <motion.div
-               initial={{ opacity: 0, y: -10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className='bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r-lg'>
+            <div className='bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r-lg'>
                <div className='flex'>
                   <div className='flex-shrink-0'>
                      <svg className='h-5 w-5 text-red-400' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'>
@@ -139,7 +121,7 @@ const CreateEventForm = ({ onClose, groupId }) => {
                      <p className='text-sm text-red-700'>{formError || error}</p>
                   </div>
                </div>
-            </motion.div>
+            </div>
          )}
 
          <form onSubmit={handleSubmit} className='space-y-6'>
@@ -244,35 +226,19 @@ const CreateEventForm = ({ onClose, groupId }) => {
             )}
 
             <div>
-               <label className='block text-sm font-medium text-charcoal-gray mb-2'>Event Image</label>
-               <div className='flex items-center'>
-                  <div className='flex-shrink-0 h-24 w-24 rounded-lg overflow-hidden bg-gray-100 mr-4 border border-light-slate'>
-                     {imagePreview ? (
-                        <img src={imagePreview} alt='Event preview' className='h-full w-full object-cover' />
-                     ) : (
-                        <div className='h-full w-full flex items-center justify-center'>
-                           <svg
-                              xmlns='http://www.w3.org/2000/svg'
-                              className='h-12 w-12 text-gray-300'
-                              fill='none'
-                              viewBox='0 0 24 24'
-                              stroke='currentColor'>
-                              <path
-                                 strokeLinecap='round'
-                                 strokeLinejoin='round'
-                                 strokeWidth={2}
-                                 d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                              />
-                           </svg>
-                        </div>
-                     )}
-                  </div>
-                  <label className='cursor-pointer bg-white py-2.5 px-4 border border-light-slate rounded-lg shadow-sm text-sm leading-4 font-medium text-charcoal-gray hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red transition-colors'>
-                     Upload Image
-                     <input type='file' className='hidden' accept='image/*' onChange={handleImageChange} />
-                  </label>
-               </div>
-               <p className='mt-1 text-xs text-gray-500'>Recommended size: 1200x630 pixels. Max file size: 5MB</p>
+               <label htmlFor='image' className='block text-sm font-medium text-charcoal-gray mb-1'>
+                  Event Image URL
+               </label>
+               <input
+                  type='url'
+                  id='image'
+                  name='image'
+                  value={formData.image}
+                  onChange={handleChange}
+                  className='w-full rounded-lg border-light-slate focus:ring-maple-red focus:border-maple-red px-4 py-2.5 text-gray-700 placeholder-gray-400'
+                  placeholder='https://example.com/event-image.jpg'
+               />
+               <p className='mt-1 text-xs text-gray-500'>Enter a URL for your event image. Recommended: 1200x630 pixels.</p>
             </div>
 
             <div>
@@ -328,7 +294,7 @@ const CreateEventForm = ({ onClose, groupId }) => {
                </button>
             </div>
          </form>
-      </motion.div>
+      </div>
    );
 };
 
