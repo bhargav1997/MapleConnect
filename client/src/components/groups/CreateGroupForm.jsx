@@ -15,10 +15,10 @@ const CreateGroupForm = ({ onClose }) => {
       description: "",
       location: "",
       isPrivate: false,
+      image: "",
+      coverImage: "",
    });
 
-   const [image, setImage] = useState(null);
-   const [imagePreview, setImagePreview] = useState(null);
    const [formError, setFormError] = useState("");
 
    const handleChange = (e) => {
@@ -27,14 +27,6 @@ const CreateGroupForm = ({ onClose }) => {
          ...formData,
          [name]: type === "checkbox" ? checked : value,
       });
-   };
-
-   const handleImageChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-         setImage(file);
-         setImagePreview(URL.createObjectURL(file));
-      }
    };
 
    const handleSubmit = async (e) => {
@@ -50,12 +42,7 @@ const CreateGroupForm = ({ onClose }) => {
       try {
          dispatch(createGroupStart());
 
-         const groupData = {
-            ...formData,
-            image,
-         };
-
-         const response = await createGroup(groupData);
+         const response = await createGroup(formData);
          dispatch(createGroupSuccess(response.data));
 
          if (onClose) {
@@ -168,40 +155,39 @@ const CreateGroupForm = ({ onClose }) => {
             </div>
 
             <div className='mb-6'>
-               <label className='block text-sm font-medium text-charcoal-gray mb-2'>Circle Image</label>
-               <div className='flex items-center'>
-                  <motion.div
-                     whileHover={{ scale: 1.05, rotate: 5 }}
-                     className='flex-shrink-0 h-20 w-20 rounded-full overflow-hidden bg-gray-100 mr-4 border-4 border-white shadow-md'>
-                     {imagePreview ? (
-                        <img src={imagePreview} alt='Circle preview' className='h-full w-full object-cover' />
-                     ) : (
-                        <div className='h-full w-full bg-gradient-to-br from-maple-red/80 to-maple-red flex items-center justify-center'>
-                           <svg className='h-10 w-10 text-white' fill='currentColor' viewBox='0 0 24 24'>
-                              <path d='M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z' />
-                           </svg>
-                        </div>
-                     )}
-                  </motion.div>
-                  <div className='flex flex-col'>
-                     <motion.label
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        className='cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-charcoal-gray hover:bg-gray-50 focus:outline-none transition-all duration-200 flex items-center'>
-                        <svg className='w-4 h-4 mr-2 text-maple-red' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                           <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth='2'
-                              d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                           />
-                        </svg>
-                        Upload Image
-                        <input type='file' className='hidden' accept='image/*' onChange={handleImageChange} />
-                     </motion.label>
-                     <p className='mt-1 text-xs text-gray-500'>Recommended: Square image, at least 300x300px</p>
-                  </div>
-               </div>
+               <label htmlFor='image' className='block text-sm font-medium text-charcoal-gray mb-1'>
+                  Circle Profile Image URL
+               </label>
+               <input
+                  type='url'
+                  id='image'
+                  name='image'
+                  value={formData.image}
+                  onChange={handleChange}
+                  className='mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2.5 px-3 focus:outline-none focus:ring-maple-red focus:border-maple-red sm:text-sm'
+                  placeholder='https://example.com/image.jpg'
+               />
+               <p className='mt-1 text-xs text-gray-500'>
+                  Enter a URL for your circle's profile image. Recommended: Square image, at least 300x300px
+               </p>
+            </div>
+
+            <div className='mb-6'>
+               <label htmlFor='coverImage' className='block text-sm font-medium text-charcoal-gray mb-1'>
+                  Circle Cover Image URL
+               </label>
+               <input
+                  type='url'
+                  id='coverImage'
+                  name='coverImage'
+                  value={formData.coverImage}
+                  onChange={handleChange}
+                  className='mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2.5 px-3 focus:outline-none focus:ring-maple-red focus:border-maple-red sm:text-sm'
+                  placeholder='https://example.com/cover.jpg'
+               />
+               <p className='mt-1 text-xs text-gray-500'>
+                  Enter a URL for your circle's cover image. Recommended: 1200x400px landscape image
+               </p>
             </div>
 
             <div className='mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100'>
@@ -258,17 +244,11 @@ const CreateGroupForm = ({ onClose }) => {
                   type='submit'
                   disabled={isLoading}
                   className={`inline-flex items-center justify-center py-2.5 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white ${
-                     isLoading
-                        ? "bg-maple-red/70 cursor-not-allowed"
-                        : "bg-maple-red hover:bg-maple-red-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red"
-                  } transition-all duration-200`}>
+                     isLoading ? "bg-maple-red/70 cursor-not-allowed" : "bg-maple-red hover:bg-maple-red-dark"
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red transition-all duration-200`}>
                   {isLoading ? (
                      <>
-                        <svg
-                           className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
-                           xmlns='http://www.w3.org/2000/svg'
-                           fill='none'
-                           viewBox='0 0 24 24'>
+                        <svg className='animate-spin -ml-1 mr-2 h-4 w-4 text-white' fill='none' viewBox='0 0 24 24'>
                            <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
                            <path
                               className='opacity-75'
@@ -278,12 +258,7 @@ const CreateGroupForm = ({ onClose }) => {
                         Creating...
                      </>
                   ) : (
-                     <>
-                        Create Circle
-                        <svg className='ml-1.5 h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
-                        </svg>
-                     </>
+                     "Create Circle"
                   )}
                </motion.button>
             </div>

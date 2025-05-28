@@ -68,7 +68,7 @@ exports.createEvent = asyncHandler(async (req, res, next) => {
 // @route   GET /api/events
 // @access  Private
 exports.getEvents = asyncHandler(async (req, res, next) => {
-   const events = await Event.find().populate("creator", "name profileImage").populate("group", "name").sort("-createdAt");
+   const events = await Event.find().populate("creator", "name profileImage").populate("group", "name image").sort("-createdAt");
 
    res.status(200).json({
       success: true,

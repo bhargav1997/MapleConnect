@@ -34,6 +34,8 @@ const EventCard = ({ event }) => {
       "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop",
    ];
 
+   console.log("event", event);
+
    // Use event ID to consistently select the same default image for an event
    const defaultEventImage = defaultEventImages[parseInt(event._id.slice(-2), 16) % defaultEventImages.length];
 

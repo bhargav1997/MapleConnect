@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { createEvent } from "../../services/eventService";
-import { getGroups } from "../../services/groupService";
+import { getAllGroups } from "../../services/groupService";
 import { motion } from "framer-motion";
 import { createEventStart, createEventSuccess, createEventFailure } from "../../redux/slices/eventSlice";
 
@@ -29,8 +29,8 @@ const CreateEventForm = ({ onClose, groupId }) => {
    useEffect(() => {
       const fetchGroups = async () => {
          try {
-            const response = await getGroups();
-            setGroups(response.data);
+            const data = await getAllGroups();
+            setGroups(data);
          } catch (error) {
             console.error("Error fetching groups:", error);
          }
@@ -234,7 +234,7 @@ const CreateEventForm = ({ onClose, groupId }) => {
                      onChange={handleChange}
                      className='w-full rounded-lg border-light-slate focus:ring-maple-red focus:border-maple-red px-4 py-2.5 text-gray-700'>
                      <option value=''>Select a group (optional)</option>
-                     {groups.map((group) => (
+                     {groups?.data?.map((group) => (
                         <option key={group._id} value={group._id}>
                            {group.name}
                         </option>

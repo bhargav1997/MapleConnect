@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { motion } from "framer-motion";
 import defaultCoverImage from "../../assets/default-cover.png";
 import defaultUserImage from "../../assets/default-user.png";
 
@@ -9,28 +8,24 @@ const GroupCard = ({ group }) => {
    const isMember = group.members.includes(user?.id);
 
    return (
-      <motion.div
-         whileHover={{ scale: 1.02 }}
-         className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow duration-200'>
+      <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow duration-200 group'>
          <div className='h-40 bg-gray-200 relative'>
             <img
                src={group.coverImage ? group.coverImage : defaultUserImage}
                alt={group.name}
-               className='w-full h-full object-cover'
+               className='w-full h-full object-cover opacity-70 group-hover:opacity-60 transition-opacity duration-200 z-0'
+               style={{ zIndex: 0 }}
             />
+            <div
+               className='h-16 w-16 rounded-full overflow-hidden border-4 border-white bg-gray-200 shadow-md absolute left-6 -bottom-8 z-20 group-focus:z-20 group-hover:z-20'
+               style={{ zIndex: 20 }}
+               tabIndex={0}>
+               <img src={group.image ? group.image : defaultCoverImage} alt={group.name} className='h-full w-full object-cover' />
+            </div>
          </div>
 
-         <div className='p-5'>
+         <div className='p-5 pt-10'>
             <div className='flex items-start mb-4'>
-               <motion.div
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  className='h-16 w-16 rounded-full overflow-hidden border-4 border-white bg-gray-200 -mt-12 mr-4 shadow-md'>
-                  <img
-                     src={group.image ? group.image : defaultCoverImage}
-                     alt={group.name}
-                     className='h-full w-full object-cover'
-                  />
-               </motion.div>
                <div className='pt-1'>
                   <h3 className='text-xl font-bold text-charcoal-gray'>{group.name}</h3>
                   <div className='flex items-center text-sm text-gray-500 mt-1'>
@@ -76,7 +71,7 @@ const GroupCard = ({ group }) => {
                   )}
                </div>
 
-               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+               <div>
                   <Link
                      to={`/groups/${group._id}`}
                      className='inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-maple-red hover:bg-maple-red-dark shadow-sm transition-all duration-200'>
@@ -85,10 +80,10 @@ const GroupCard = ({ group }) => {
                         <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M14 5l7 7m0 0l-7 7m7-7H3' />
                      </svg>
                   </Link>
-               </motion.div>
+               </div>
             </div>
          </div>
-      </motion.div>
+      </div>
    );
 };
 

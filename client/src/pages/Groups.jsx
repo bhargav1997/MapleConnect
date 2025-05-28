@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getGroups } from "../services/groupService";
+import { getAllGroups } from "../services/groupService";
 import { getGroupsStart, getGroupsSuccess, getGroupsFailure } from "../redux/slices/groupSlice";
 import GroupCard from "../components/groups/GroupCard";
 import CreateGroupForm from "../components/groups/CreateGroupForm";
@@ -12,13 +12,14 @@ const Groups = () => {
    const [showCreateForm, setShowCreateForm] = useState(false);
    const [searchTerm, setSearchTerm] = useState("");
    const [filterPrivate, setFilterPrivate] = useState(false);
+   let filteredGroups = [];
 
    useEffect(() => {
       const fetchGroups = async () => {
          try {
             dispatch(getGroupsStart());
-            const response = await getGroups();
-            dispatch(getGroupsSuccess(response.data));
+            const data = await getAllGroups();
+            dispatch(getGroupsSuccess(data));
          } catch (error) {
             const message = error.response && error.response.data.error ? error.response.data.error : "Failed to load groups";
             dispatch(getGroupsFailure(message));
@@ -28,10 +29,10 @@ const Groups = () => {
       fetchGroups();
    }, [dispatch]);
 
+   console.log("groups", groups);
+
    // Filter groups based on search term and private filter
-   const filteredGroups = groups.filter(
-      (group) => group.name.toLowerCase().includes(searchTerm.toLowerCase()) && (!filterPrivate || !group.isPrivate),
-   );
+   filteredGroups = groups?.data?.filter((group) => group.name.toLowerCase().includes(searchTerm.toLowerCase()) && (!filterPrivate || !group.isPrivate));
 
    return (
       <div className='bg-whisper-white min-h-screen'>
@@ -78,7 +79,7 @@ const Groups = () => {
                <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4'>
                   <h2 className='text-xl font-semibold text-charcoal-gray'>Find Your Circle</h2>
                   <div className='flex items-center space-x-2'>
-                     <span className='text-sm text-gray-500'>{filteredGroups.length} circles found</span>
+                     <span className='text-sm text-gray-500'>{filteredGroups ? filteredGroups?.length : groups?.data?.length} circles found</span>
                      {(searchTerm || filterPrivate) && (
                         <button
                            onClick={() => {
@@ -178,7 +179,7 @@ const Groups = () => {
                      </div>
                   </div>
                </motion.div>
-            ) : filteredGroups.length === 0 ? (
+            ) : filteredGroups?.length === 0 ? (
                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -219,7 +220,7 @@ const Groups = () => {
             ) : (
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                     {filteredGroups.map((group, index) => (
+                     {filteredGroups?.map((group, index) => (
                         <motion.div
                            key={group._id}
                            initial={{ opacity: 0, y: 20 }}

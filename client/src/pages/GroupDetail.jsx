@@ -173,7 +173,7 @@ const GroupDetail = () => {
          <div className='bg-white rounded-lg shadow-md overflow-hidden mb-6'>
             <div className='h-48 bg-gray-300 relative'>
                <img
-                  src={group.coverImage ? `http://localhost:5000/uploads/${group.coverImage}` : defaultCoverImage}
+                  src={group.coverImage ? `${group.coverImage}` : defaultCoverImage}
                   alt={group.name}
                   className='w-full h-full object-cover'
                />
@@ -184,7 +184,7 @@ const GroupDetail = () => {
                   <div className='flex-shrink-0 -mt-16 md:mr-6 relative'>
                      <div className='h-24 w-24 rounded-full overflow-hidden border-4 border-white bg-gray-200 relative'>
                         <img
-                           src={group.image ? `http://localhost:5000/uploads/${group.image}` : defaultUserImage}
+                           src={group.image ? `${group.image}` : defaultUserImage}
                            alt={group.name}
                            className='h-full w-full object-cover'
                         />
@@ -343,7 +343,7 @@ const GroupDetail = () => {
                                     className='h-8 w-8 rounded-full mr-2'
                                     src={
                                        group.creator.profileImage
-                                          ? `http://localhost:5000/uploads/${group.creator.profileImage}`
+                                          ? `${group.creator.profileImage}`
                                           : defaultUserImage
                                     }
                                     alt={group.creator.name}
@@ -479,7 +479,7 @@ const GroupDetail = () => {
                      </div>
                   ) : (
                      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                        {events.map((event) => (
+                        {events?.map((event) => (
                            <EventCard key={event._id} event={event} />
                         ))}
                      </div>
@@ -500,7 +500,7 @@ const GroupDetail = () => {
                                  <Link to={`/profile/${admin._id || admin}`} className='flex items-center flex-1'>
                                     <img
                                        className='h-10 w-10 rounded-full mr-3'
-                                       src={admin.profileImage ? `http://localhost:5000/uploads/${admin.profileImage}` : defaultUserImage}
+                                       src={admin.profileImage ? `${admin.profileImage}` : defaultUserImage}
                                        alt={admin.name}
                                     />
                                     <div>
@@ -521,7 +521,7 @@ const GroupDetail = () => {
                                  <Link to={`/profile/${member._id || member}`} className='flex items-center flex-1'>
                                     <img
                                        className='h-10 w-10 rounded-full mr-3'
-                                       src={member.profileImage ? `http://localhost:5000/uploads/${member.profileImage}` : defaultUserImage}
+                                       src={member.profileImage ? `${member.profileImage}` : defaultUserImage}
                                        alt={member.name}
                                     />
                                     <div>
