@@ -90,11 +90,7 @@ const SearchResults = () => {
                   <div className='flex items-center'>
                      <div className='h-12 w-12 rounded-full overflow-hidden bg-gray-200 mr-4'>
                         {item.profileImage ? (
-                           <img
-                              src={`http://localhost:5000/uploads/${item.profileImage}`}
-                              alt={item.name}
-                              className='h-full w-full object-cover'
-                           />
+                           <img src={`${item.profileImage}`} alt={item.name} className='h-full w-full object-cover' />
                         ) : (
                            <div className='h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-500'>
                               {getUserInitials(item.name)}
@@ -124,11 +120,7 @@ const SearchResults = () => {
                         <div className='flex items-center mb-2'>
                            <div className='h-8 w-8 rounded-full overflow-hidden bg-gray-200 mr-2'>
                               {item.author?.profileImage ? (
-                                 <img
-                                    src={`http://localhost:5000/uploads/${item.author.profileImage}`}
-                                    alt={item.author.name}
-                                    className='h-full w-full object-cover'
-                                 />
+                                 <img src={`${item.author.profileImage}`} alt={item.author.name} className='h-full w-full object-cover' />
                               ) : (
                                  <div className='h-full w-full bg-indigo-100'></div>
                               )}

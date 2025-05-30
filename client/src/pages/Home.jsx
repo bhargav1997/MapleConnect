@@ -11,9 +11,11 @@ import defaultUserImage from "../assets/default-user.png";
 const Home = () => {
    const { user, isAuthenticated } = useAuth();
    const [posts, setPosts] = useState([]);
+   const [myPostsLength, setMyPostsLength] = useState(0);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
    const [activeTab, setActiveTab] = useState("all");
+
    const [showWelcome, setShowWelcome] = useState(true);
    const [isPostModalOpen, setIsPostModalOpen] = useState(false);
    const [trendingTopics, setTrendingTopics] = useState([]);
@@ -27,6 +29,8 @@ const Home = () => {
          setError("");
          const response = await getPosts();
          setPosts(response.data || []);
+         let myPosts = response.data.filter((post) => post.user._id === user.id);
+         setMyPostsLength(myPosts.length);
       } catch (err) {
          console.error("Error fetching posts:", err);
          setError(err.message || "Failed to load posts. Please try again later.");
@@ -38,6 +42,7 @@ const Home = () => {
          }, 5000);
       }
    };
+
 
    const getFilteredPosts = () => {
       if (activeTab === "all") {
@@ -132,6 +137,7 @@ const Home = () => {
             )}
          </AnimatePresence>
 
+         {/* Main Content */}
          <div className='flex flex-col md:flex-row gap-6'>
             {/* Left Sidebar */}
             <motion.div
@@ -186,7 +192,7 @@ const Home = () => {
                         <div className='w-full bg-gray-50 rounded-lg p-3'>
                            <div className='flex justify-between text-center'>
                               <div className='flex-1'>
-                                 <div className='font-bold text-charcoal-gray'>{posts.length}</div>
+                                 <div className='font-bold text-charcoal-gray'>{myPostsLength}</div>
                                  <div className='text-xs text-gray-500'>Posts</div>
                               </div>
                               <div className='flex-1 border-x border-gray-200'>
@@ -250,8 +256,8 @@ const Home = () => {
                {/* People You May Know */}
                <PeopleYouMayKnow />
             </motion.div>
-
-            {/* Main Content */}
+            {console.log("user", user)}
+            {/* Main Content 2 */}
             <div className='flex-1 space-y-6'>
                {/* Create Post */}
                <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100'>

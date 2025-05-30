@@ -18,6 +18,18 @@ export const updateUser = async (userId, userData) => {
    return response.data;
 };
 
+// Update user bio
+export const updateUserBio = async (userId, bio) => {
+   const response = await api.put(`/users/${userId}/bio`, { bio });
+   return response.data;
+};
+
+// Update username
+export const updateUserUsername = async (userId, username) => {
+   const response = await api.put(`/users/${userId}/username`, { username });
+   return response.data;
+};
+
 // Update profile image
 export const updateProfileImage = async (userId, imageFile) => {
    const formData = new FormData();

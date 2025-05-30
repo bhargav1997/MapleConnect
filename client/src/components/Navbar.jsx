@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import SearchBar from "./search/SearchBar";
 import NotificationDropdown from "./notifications/NotificationDropdown";
 import { motion } from "framer-motion";
-import { getUserInitials } from "../utils/helpers";
+import defaultUserImage from "../assets/default-user.png";
 
 const Navbar = () => {
    const { user, isAuthenticated, logout } = useAuth();
@@ -211,17 +211,14 @@ const Navbar = () => {
                                        ? "border-maple-red ring-2 ring-maple-red/20"
                                        : "border-transparent hover:border-maple-red/50"
                                  }`}>
-                                 {user?.profilePicture ? (
-                                    <img
-                                       className='h-full w-full object-cover'
-                                       src={user.profilePicture}
-                                       alt={user?.name || "User profile"}
-                                    />
-                                 ) : (
-                                    <div className='h-full w-full flex items-center justify-center bg-gradient-to-br from-maple-red/80 to-maple-red'>
-                                       <span className='text-lg font-bold text-white'>{getUserInitials(user?.name)}</span>
-                                    </div>
-                                 )}
+                                 <img
+                                    src={user?.profileImage || defaultUserImage}
+                                    alt={user?.name || "User profile"}
+                                    className='h-full w-full object-cover'
+                                    onError={(e) => {
+                                       e.target.src = defaultUserImage;
+                                    }}
+                                 />
                               </div>
                            </Link>
                         </motion.div>

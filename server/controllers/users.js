@@ -367,6 +367,108 @@ const getFollowing = async (req, res) => {
    }
 };
 
+// @desc    Update account settings
+// @route   PUT /api/users/:id/settings
+// @access  Private
+const updateAccountSettings = async (req, res, next) => {
+   try {
+      // Make sure user is updating their own settings
+      if (req.params.id !== req.user.id.toString()) {
+         return res.status(401).json({
+            success: false,
+            error: "Not authorized to update these settings",
+         });
+      }
+
+      const { name, username, bio, location, profileImage, coverImage, email, currentPassword, newPassword } = req.body;
+
+      // Fields to update
+      const fieldsToUpdate = {};
+
+      // Basic fields
+      if (name) fieldsToUpdate.name = name;
+      if (bio) fieldsToUpdate.bio = bio;
+      if (location) fieldsToUpdate.location = location;
+      if (profileImage) fieldsToUpdate.profileImage = profileImage;
+      if (coverImage) fieldsToUpdate.coverImage = coverImage;
+
+      // Handle username update
+      if (username) {
+         const existingUser = await User.findOne({
+            username,
+            _id: { $ne: req.params.id },
+         });
+
+         if (existingUser) {
+            return res.status(400).json({
+               success: false,
+               error: "Username already taken",
+            });
+         }
+         fieldsToUpdate.username = username;
+      }
+
+      // Handle email update
+      if (email) {
+         const existingUser = await User.findOne({
+            email,
+            _id: { $ne: req.params.id },
+         });
+
+         if (existingUser) {
+            return res.status(400).json({
+               success: false,
+               error: "Email already in use",
+            });
+         }
+         fieldsToUpdate.email = email;
+      }
+
+      // Handle password update
+      if (currentPassword && newPassword) {
+         const user = await User.findById(req.params.id).select("+password");
+         const isMatch = await user.matchPassword(currentPassword);
+
+         if (!isMatch) {
+            return res.status(401).json({
+               success: false,
+               error: "Current password is incorrect",
+            });
+         }
+
+         user.password = newPassword;
+         await user.save();
+      }
+
+      // Update user
+      const updatedUser = await User.findByIdAndUpdate(req.params.id, fieldsToUpdate, {
+         new: true,
+         runValidators: true,
+      });
+
+      if (!updatedUser) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      res.status(200).json({
+         success: true,
+         data: updatedUser,
+      });
+   } catch (err) {
+      if (err.name === "ValidationError") {
+         const messages = Object.values(err.errors).map((val) => val.message);
+         return res.status(400).json({
+            success: false,
+            error: messages.join(", "),
+         });
+      }
+      next(err);
+   }
+};
+
 module.exports = {
    getUsers,
    getUser,
@@ -379,4 +481,5 @@ module.exports = {
    getSuggestedUsers,
    getFollowers,
    getFollowing,
+   updateAccountSettings,
 };

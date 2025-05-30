@@ -3,14 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import ProfileSettings from "../components/settings/ProfileSettings";
 import AccountSettings from "../components/settings/AccountSettings";
 import PrivacySettings from "../components/settings/PrivacySettings";
 import NotificationSettings from "../components/settings/NotificationSettings";
 import { getUserInitials } from "../utils/helpers";
 
 const Settings = () => {
-   const [activeTab, setActiveTab] = useState("profile");
+   const [activeTab, setActiveTab] = useState("account");
    const { user } = useAuth();
    const navigate = useNavigate();
 
@@ -23,8 +22,6 @@ const Settings = () => {
 
    const renderTabContent = () => {
       switch (activeTab) {
-         case "profile":
-            return <ProfileSettings />;
          case "account":
             return <AccountSettings />;
          case "privacy":
@@ -103,28 +100,6 @@ const Settings = () => {
                   </div>
                   <nav className='flex flex-col p-2'>
                      <motion.button
-                        onClick={() => setActiveTab("profile")}
-                        className={`flex items-center px-4 py-3 text-left rounded-lg transition-all duration-200 ${
-                           activeTab === "profile" ? "bg-maple-red/10 text-maple-red font-medium" : "text-gray-700 hover:bg-gray-50"
-                        }`}
-                        whileHover={{ x: activeTab === "profile" ? 0 : 5 }}
-                        whileTap={{ scale: 0.98 }}>
-                        <svg
-                           className={`w-5 h-5 mr-3 ${activeTab === "profile" ? "text-maple-red" : "text-gray-500"}`}
-                           fill='none'
-                           viewBox='0 0 24 24'
-                           stroke='currentColor'>
-                           <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={1.5}
-                              d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                           />
-                        </svg>
-                        Profile Information
-                     </motion.button>
-
-                     <motion.button
                         onClick={() => setActiveTab("account")}
                         className={`flex items-center px-4 py-3 text-left rounded-lg transition-all duration-200 ${
                            activeTab === "account" ? "bg-maple-red/10 text-maple-red font-medium" : "text-gray-700 hover:bg-gray-50"
@@ -195,11 +170,7 @@ const Settings = () => {
                      <div className='flex items-center'>
                         <div className='h-10 w-10 rounded-full bg-gray-200 overflow-hidden'>
                            {user?.profileImage ? (
-                              <img
-                                 src={`http://localhost:5000/uploads/${user.profileImage}`}
-                                 alt={user.name}
-                                 className='h-full w-full object-cover'
-                              />
+                              <img src={`${user.profileImage}`} alt={user.name} className='h-full w-full object-cover' />
                            ) : (
                               <div className='h-full w-full flex items-center justify-center bg-maple-red text-white'>
                                  {getUserInitials(user?.name)}

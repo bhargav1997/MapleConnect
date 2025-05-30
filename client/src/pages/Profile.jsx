@@ -7,7 +7,7 @@ import {
    followUser,
    unfollowUser,
    updateProfileImage,
-   updateUser,
+   updateUser as updateUserAPI,
    getFollowers,
    getFollowing,
 } from "../services/userService";
@@ -17,10 +17,13 @@ import { getUserInitials } from "../utils/helpers";
 import defaultCoverImage from "../assets/default-cover.png";
 import defaultUserImage from "../assets/default-user.png";
 import UserListModal from "../components/common/UserListModal";
+import { useDispatch } from "react-redux";
+import { updateUser } from "../redux/slices/authSlice";
 
 const Profile = () => {
    const { id } = useParams();
    const { user: currentUser } = useAuth();
+   const dispatch = useDispatch();
 
    const [user, setUser] = useState(null);
    const [posts, setPosts] = useState([]);
@@ -55,6 +58,11 @@ const Profile = () => {
          const userResponse = await getUserById(id);
          setUser(userResponse.data);
 
+         // Only update Redux state if it's the current user
+         if (isCurrentUser) {
+            dispatch(updateUser(userResponse.data));
+         }
+
          // Set bio and username text when user data is loaded
          if (userResponse.data.bio) {
             setBioText(userResponse.data.bio);
@@ -85,15 +93,21 @@ const Profile = () => {
 
       try {
          // Call API to update user bio
-         await updateUser(currentUser.id, {
+         const response = await updateUserAPI(currentUser.id, {
             bio: bioText,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            location: user.location,
+            profileImage: user.profileImage,
+            coverImage: user.coverImage,
          });
 
-         // Update user data in state
-         setUser((prevUser) => ({
-            ...prevUser,
-            bio: bioText,
-         }));
+         // Update local state with all user data
+         setUser(response.data);
+
+         // Update Redux state
+         dispatch(updateUser(response.data));
 
          // Close edit mode
          setEditingBio(false);
@@ -133,15 +147,21 @@ const Profile = () => {
 
       try {
          // Call API to update username
-         await updateUser(currentUser.id, {
+         const response = await updateUserAPI(currentUser.id, {
             username: usernameText,
+            name: user.name,
+            bio: user.bio,
+            email: user.email,
+            location: user.location,
+            profileImage: user.profileImage,
+            coverImage: user.coverImage,
          });
 
-         // Update user data in state
-         setUser((prevUser) => ({
-            ...prevUser,
-            username: usernameText,
-         }));
+         // Update local state with all user data
+         setUser(response.data);
+
+         // Update Redux state
+         dispatch(updateUser(response.data));
 
          // Close edit mode
          setEditingUsername(false);

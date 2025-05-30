@@ -8,23 +8,25 @@ const ChatUsers = () => {
    const [users, setUsers] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
-   const [activeTab, setActiveTab] = useState("followers");
    const { user } = useAuth();
 
    const fetchUsers = async () => {
-      console.log("fetchUsers", user);
       if (!user?.id) return;
-
       try {
          setLoading(true);
          setError("");
-         const response = activeTab === "followers" ? await getFollowers(user.id) : await getFollowing(user.id);
-         console.log("API Response:", response);
-         // Handle both array and object response formats
-         const userData = Array.isArray(response) ? response : response.data || [];
-         setUsers(userData);
+         // Fetch both followers and following
+         const [followersRes, followingRes] = await Promise.all([getFollowers(user.id), getFollowing(user.id)]);
+         // Normalize data
+         const followers = Array.isArray(followersRes) ? followersRes : followersRes.data || [];
+         const following = Array.isArray(followingRes) ? followingRes : followingRes.data || [];
+         // Combine and deduplicate by _id
+         const allUsersMap = {};
+         [...followers, ...following].forEach((u) => {
+            allUsersMap[u._id || u.id] = u;
+         });
+         setUsers(Object.values(allUsersMap));
       } catch (err) {
-         console.error("Error fetching users:", err);
          setError(err.message || "Failed to load users");
       } finally {
          setLoading(false);
@@ -33,7 +35,7 @@ const ChatUsers = () => {
 
    useEffect(() => {
       fetchUsers();
-   }, [user?.id, activeTab]);
+   }, [user?.id]);
 
    if (loading) {
       return (
@@ -86,37 +88,13 @@ const ChatUsers = () => {
                </svg>
             </div>
             <p className='text-gray-600 text-lg font-medium mb-2'>No users found</p>
-            <p className='text-sm text-gray-500'>
-               {activeTab === "followers"
-                  ? "You don't have any followers yet. Share your profile to connect with others!"
-                  : "You're not following anyone yet. Discover and connect with other users!"}
-            </p>
+            <p className='text-sm text-gray-500'>{"No users to chat with yet. Follow someone or let them follow you to start a chat!"}</p>
          </div>
       );
    }
 
    return (
       <div className='p-4'>
-         <div className='inline-flex mb-6 border border-gray-100 rounded-xl overflow-hidden bg-white'>
-            <button
-               onClick={() => setActiveTab("followers")}
-               className={`min-w-[110px] max-w-[140px] px-4 py-2.5 text-sm font-medium transition-all focus:z-10 ${
-                  activeTab === "followers"
-                     ? "bg-maple-red text-white shadow-md shadow-maple-red/20"
-                     : "bg-white text-gray-600 hover:bg-gray-50"
-               }`}>
-               Followers
-            </button>
-            <button
-               onClick={() => setActiveTab("following")}
-               className={`min-w-[110px] max-w-[140px] px-4 py-2.5 text-sm font-medium transition-all focus:z-10 ${
-                  activeTab === "following"
-                     ? "bg-maple-red text-white shadow-md shadow-maple-red/20"
-                     : "bg-white text-gray-600 hover:bg-gray-50 border-l border-gray-100"
-               }`}>
-               Following
-            </button>
-         </div>
          <div className='space-y-3'>
             {users.map((user) => (
                <div key={user._id || user.id} className='group relative transform transition-all hover:scale-[1.02] hover:shadow-md'>

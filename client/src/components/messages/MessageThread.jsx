@@ -382,7 +382,7 @@ const MessageThread = ({ selectedUser, onBack }) => {
                                           {message.attachments.map((attachment, index) => (
                                              <a
                                                 key={index}
-                                                href={`http://localhost:5000/uploads/${attachment}`}
+                                                href={`${attachment}`}
                                                 target='_blank'
                                                 rel='noopener noreferrer'
                                                 className={`block p-2 rounded-lg ${

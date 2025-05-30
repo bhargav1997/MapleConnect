@@ -38,11 +38,7 @@ const ListingCard = ({ listing }) => {
          <div className='h-48 bg-gray-200 relative overflow-hidden'>
             <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 1.5 }} className='w-full h-full'>
                {listing.images && listing.images.length > 0 ? (
-                  <img
-                     src={`http://localhost:5000/uploads/${listing.images[0]}`}
-                     alt={listing.title}
-                     className='w-full h-full object-cover'
-                  />
+                  <img src={`${listing.images[0]}`} alt={listing.title} className='w-full h-full object-cover' />
                ) : (
                   <img src={defaultListingImage} alt={listing.title} className='w-full h-full object-cover' />
                )}
@@ -115,11 +111,7 @@ const ListingCard = ({ listing }) => {
                <div className='flex items-center'>
                   <div className='h-8 w-8 rounded-full overflow-hidden bg-gray-200 mr-2 border border-gray-100'>
                      <img
-                        src={
-                           listing.seller.profileImage
-                              ? `http://localhost:5000/uploads/${listing.seller.profileImage}`
-                              : "https://via.placeholder.com/150"
-                        }
+                        src={listing.seller.profileImage ? `${listing.seller.profileImage}` : "https://via.placeholder.com/150"}
                         alt={listing.seller.name}
                         className='h-full w-full object-cover'
                      />
