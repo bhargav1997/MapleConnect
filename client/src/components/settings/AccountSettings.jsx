@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import api from "../../services/api";
 import defaultCoverImage from "../../assets/default-cover.png";
 import defaultUserImage from "../../assets/default-user.png";
+import AccountDeletion from "./AccountDeletion";
 
 const AccountSettings = () => {
    const { user } = useAuth();
@@ -284,6 +285,9 @@ const AccountSettings = () => {
                </button>
             </div>
          </form>
+
+         {/* Account Deletion Section */}
+         <AccountDeletion />
       </div>
    );
 };

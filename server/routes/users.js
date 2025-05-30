@@ -12,6 +12,7 @@ const {
    getFollowers,
    getFollowing,
    updateAccountSettings,
+   deleteUser,
 } = require("../controllers/users");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
@@ -25,7 +26,7 @@ router.route("/").get(getUsers);
 router.route("/search").get(searchUsers);
 router.route("/suggested").get(getSuggestedUsers);
 
-router.route("/:id").get(getUser).put(updateUser);
+router.route("/:id").get(getUser).put(updateUser).delete(deleteUser);
 router.route("/:id/settings").put(updateAccountSettings);
 
 router.route("/:id/profile-image").put(upload.single("profileImage"), updateProfileImage);

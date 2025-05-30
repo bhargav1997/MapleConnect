@@ -1,5 +1,7 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
+const Message = require("../models/Message");
+const Notification = require("../models/Notification");
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -469,6 +471,65 @@ const updateAccountSettings = async (req, res, next) => {
    }
 };
 
+// @desc    Delete user account
+// @route   DELETE /api/users/:id
+// @access  Private
+const deleteUser = async (req, res, next) => {
+   try {
+      // Make sure user is deleting their own account
+      if (req.params.id !== req.user.id.toString()) {
+         return res.status(401).json({
+            success: false,
+            error: "Not authorized to delete this account",
+         });
+      }
+
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Delete user's posts
+      await Post.deleteMany({ user: req.params.id });
+
+      // Delete user's comments from all posts
+      await Post.updateMany({ "comments.user": req.params.id }, { $pull: { comments: { user: req.params.id } } });
+
+      // Remove user from followers/following lists
+      await User.updateMany(
+         { $or: [{ followers: req.params.id }, { following: req.params.id }] },
+         {
+            $pull: {
+               followers: req.params.id,
+               following: req.params.id,
+            },
+         },
+      );
+
+      // Delete user's messages
+      await Message.deleteMany({
+         $or: [{ sender: req.params.id }, { receiver: req.params.id }],
+      });
+
+      // Delete user's notifications
+      await Notification.deleteMany({ recipient: req.params.id });
+
+      // Finally, delete the user
+      await user.deleteOne();
+
+      res.status(200).json({
+         success: true,
+         data: {},
+      });
+   } catch (err) {
+      next(err);
+   }
+};
+
 module.exports = {
    getUsers,
    getUser,
@@ -482,4 +543,5 @@ module.exports = {
    getFollowers,
    getFollowing,
    updateAccountSettings,
+   deleteUser,
 };
