@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ListingCard = ({ listing }) => {
    const { user } = useAuth();
+   const [currentImageIndex, setCurrentImageIndex] = useState(0);
    const isOwner = listing.seller._id === user?.id || listing.seller === user?.id;
 
    // Format price
@@ -28,21 +30,79 @@ const ListingCard = ({ listing }) => {
       "https://images.unsplash.com/photo-1556740772-1a741367b93e?q=80&w=2070&auto=format&fit=crop",
    ];
 
-   // Use listing ID to consistently select the same default image for a listing
    const defaultListingImage = defaultListingImages[parseInt(listing._id.slice(-2), 16) % defaultListingImages.length];
+
+   const images = listing.images && listing.images.length > 0 ? listing.images : [defaultListingImage];
+
+   const nextImage = () => {
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+   };
+
+   const prevImage = () => {
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+   };
 
    return (
       <motion.div
          whileHover={{ y: -5 }}
          className='bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300'>
-         <div className='h-48 bg-gray-200 relative overflow-hidden'>
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 1.5 }} className='w-full h-full'>
-               {listing.images && listing.images.length > 0 ? (
-                  <img src={`${listing.images[0]}`} alt={listing.title} className='w-full h-full object-cover' />
-               ) : (
-                  <img src={defaultListingImage} alt={listing.title} className='w-full h-full object-cover' />
-               )}
+         <div className='h-48 bg-gray-200 relative overflow-hidden group'>
+            <motion.div className='w-full h-full'>
+               <AnimatePresence initial={false} custom={currentImageIndex}>
+                  <motion.img
+                     key={currentImageIndex}
+                     src={images[currentImageIndex]}
+                     alt={listing.title}
+                     className='w-full h-full object-cover'
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     transition={{ duration: 0.3 }}
+                  />
+               </AnimatePresence>
                <div className='absolute inset-0 bg-gradient-to-t from-black/40 to-transparent'></div>
+
+               {/* Image Navigation Arrows */}
+               {images.length > 1 && (
+                  <>
+                     <button
+                        onClick={(e) => {
+                           e.preventDefault();
+                           prevImage();
+                        }}
+                        className='absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'>
+                        <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M15 19l-7-7 7-7' />
+                        </svg>
+                     </button>
+                     <button
+                        onClick={(e) => {
+                           e.preventDefault();
+                           nextImage();
+                        }}
+                        className='absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'>
+                        <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
+                        </svg>
+                     </button>
+
+                     {/* Image Dots */}
+                     <div className='absolute bottom-2 left-0 right-0 flex justify-center space-x-1'>
+                        {images.map((_, index) => (
+                           <button
+                              key={index}
+                              onClick={(e) => {
+                                 e.preventDefault();
+                                 setCurrentImageIndex(index);
+                              }}
+                              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                                 index === currentImageIndex ? "bg-white scale-110" : "bg-white/50 hover:bg-white/75"
+                              }`}
+                           />
+                        ))}
+                     </div>
+                  </>
+               )}
             </motion.div>
 
             {listing.status !== "available" && (
