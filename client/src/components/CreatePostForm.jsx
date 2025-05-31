@@ -95,79 +95,61 @@ const CreatePostForm = ({ onPostCreated, isInModal = false, initialVisibility = 
 
    const handleSubmit = async (e) => {
       e.preventDefault();
-
-      if (!content.trim()) {
-         setError("Post content is required");
+      if (!content.trim() && media.length === 0) {
+         setError("Please add some content or media to your post");
          return;
       }
 
-      try {
-         setIsSubmitting(true);
-         setError("");
+      setIsSubmitting(true);
+      setError("");
 
+      try {
          const formData = new FormData();
-         formData.append("content", content);
+         formData.append("content", content.trim());
+         if (location) formData.append("location", location);
+         if (feeling) formData.append("feeling", feeling);
+         if (activity) formData.append("activity", activity);
          formData.append("visibility", visibility);
 
-         if (location) {
-            formData.append("location", location);
-         }
-
-         if (feeling) {
-            formData.append("feeling", feeling);
-         }
-
-         if (activity) {
-            formData.append("activity", activity);
-         }
-
+         // Add tagged users if any
          if (taggedUsers.length > 0) {
-            formData.append("taggedUsers", JSON.stringify(taggedUsers.map((user) => user._id)));
+            formData.append("taggedUserIds", JSON.stringify(taggedUsers.map((user) => user._id)));
+         }
+
+         // Add poll if created
+         if (showPollCreator && pollQuestion && pollOptions.filter((opt) => opt.trim()).length >= 2) {
+            formData.append("pollQuestion", pollQuestion);
+            formData.append("pollOptions", JSON.stringify(pollOptions.filter((opt) => opt.trim())));
+            formData.append("pollExpiration", pollExpiration);
          }
 
          // Add media files
-         media.forEach((file, index) => {
-            formData.append(`media`, file);
+         media.forEach((file) => {
+            formData.append("media", file);
          });
-
-         // Add poll data if poll creator is active
-         if (showPollCreator && pollQuestion.trim() && pollOptions.filter((opt) => opt.trim()).length >= 2) {
-            formData.append(
-               "poll",
-               JSON.stringify({
-                  question: pollQuestion,
-                  options: pollOptions.filter((opt) => opt.trim()),
-                  expiresAt: pollExpiration || undefined,
-               }),
-            );
-         }
 
          const response = await createPost(formData);
 
-         // Reset form
-         setContent("");
-         setLocation("");
-         setFeeling("");
-         setActivity("");
-         setVisibility("public");
-         setMedia([]);
-         setMediaPreview([]);
-         setPollQuestion("");
-         setPollOptions(["", ""]);
-         setPollExpiration("1");
-         setTaggedUsers([]);
-         setShowLocationInput(false);
-         setShowFeelingSelector(false);
-         setShowPollCreator(false);
-         setShowTagPeople(false);
-         setShowPrivacySelector(false);
+         if (response.data.success) {
+            setContent("");
+            setLocation("");
+            setFeeling("");
+            setActivity("");
+            setMedia([]);
+            setMediaPreview([]);
+            setTaggedUsers([]);
+            setPollQuestion("");
+            setPollOptions(["", ""]);
+            setPollExpiration("1");
+            setShowPollCreator(false);
 
-         if (onPostCreated) {
-            onPostCreated(response.data);
+            if (onPostCreated) {
+               onPostCreated(response.data.data);
+            }
          }
-      } catch (error) {
-         console.error("Error creating post:", error);
-         setError(error.response?.data?.message || "Failed to create post. Please try again.");
+      } catch (err) {
+         console.error("Error creating post:", err);
+         setError(err.response?.data?.error || "Failed to create post");
       } finally {
          setIsSubmitting(false);
       }

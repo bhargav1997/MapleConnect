@@ -17,13 +17,50 @@ export const getPostById = async (id) => {
 };
 
 // Create post
-export const createPost = async (formData) => {
-   const response = await api.post("/posts", formData, {
-      headers: {
-         "Content-Type": "multipart/form-data",
-      },
-   });
-   return response;
+export const createPost = async (postData) => {
+   try {
+      let requestData;
+      let headers = {};
+
+      // Check if postData contains files
+      if (postData instanceof FormData) {
+         requestData = postData;
+         headers = {
+            "Content-Type": "multipart/form-data",
+         };
+      } else {
+         // For text-only posts, ensure content is properly formatted
+         requestData = {
+            content: postData.content,
+            location: postData.location || undefined,
+            feeling: postData.feeling || undefined,
+            activity: postData.activity || undefined,
+            visibility: postData.visibility || "public",
+            taggedUserIds: postData.taggedUserIds || [],
+         };
+
+         // Remove undefined fields
+         Object.keys(requestData).forEach((key) => requestData[key] === undefined && delete requestData[key]);
+      }
+
+      const response = await api.post("/posts", requestData, { headers });
+
+      // Check if we have a response and data
+      if (!response || !response.data) {
+         throw new Error("No response received from server");
+      }
+
+      // Return the response data directly
+      return response;
+   } catch (error) {
+      console.error("Error in createPost:", error);
+      // If it's a server response error, throw the error message
+      if (error.response?.data?.error) {
+         throw new Error(error.response.data.error);
+      }
+      // For network or other errors
+      throw new Error("Failed to create post. Please try again.");
+   }
 };
 
 // Update post
@@ -67,9 +104,9 @@ export const deleteComment = async (postId, commentId) => {
    return response;
 };
 
-export const reportPost = async (id) => {
+export const reportPost = async (id, { reason }) => {
    try {
-      const response = await api.post(`/posts/${id}/report`);
+      const response = await api.post(`/posts/${id}/report`, { reason });
       return response.data;
    } catch (error) {
       console.error("Error reporting post:", error);

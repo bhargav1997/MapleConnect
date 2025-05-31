@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
    // Login user
    const loginUser = async (userData) => {
       try {
+         console.log("userData", userData);
          dispatch(loginStart());
          const data = await authService.login(userData);
          dispatch(loginSuccess(data.user));

@@ -103,6 +103,24 @@ const PostSchema = new mongoose.Schema(
             },
          },
       ],
+      reports: [
+         {
+            user: {
+               type: mongoose.Schema.Types.ObjectId,
+               ref: "User",
+               required: true,
+            },
+            reason: {
+               type: String,
+               required: true,
+               maxlength: [500, "Report reason cannot be more than 500 characters"],
+            },
+            createdAt: {
+               type: Date,
+               default: Date.now,
+            },
+         },
+      ],
    },
    {
       timestamps: true,

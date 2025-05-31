@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { likePost, unlikePost, commentOnPost, deleteComment, deletePost, reportPost } from "../services/postService";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { getUserInitials } from "../utils/helpers";
 import { useDispatch } from "react-redux";
@@ -17,7 +17,10 @@ const PostCard = ({ post, onUpdate }) => {
    const [isSharing, setIsSharing] = useState(false);
    const [showSettings, setShowSettings] = useState(false);
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+   const [showReportDialog, setShowReportDialog] = useState(false);
+   const [reportReason, setReportReason] = useState("");
    const [commentToDelete, setCommentToDelete] = useState(null);
+   const [isDeleting, setIsDeleting] = useState(false);
 
    const handleLike = async () => {
       if (!user) {
@@ -109,15 +112,25 @@ const PostCard = ({ post, onUpdate }) => {
          return;
       }
 
+      setShowDeleteConfirm(true);
+      setShowSettings(false);
+   };
+
+   const confirmDeletePost = async () => {
       try {
+         setIsDeleting(true);
          await deletePost(post._id);
-         toast.success("Post deleted");
-         if (onUpdate) onUpdate();
+         toast.success("Post deleted successfully");
+         setShowDeleteConfirm(false);
+         if (onUpdate) {
+            onUpdate();
+         }
       } catch (error) {
          console.error("Error deleting post:", error);
          toast.error(error.response?.data?.message || "Error deleting post");
       } finally {
-         setShowSettings(false);
+         setIsDeleting(false);
+         setShowDeleteConfirm(false);
       }
    };
 
@@ -128,13 +141,13 @@ const PostCard = ({ post, onUpdate }) => {
       }
 
       try {
-         await reportPost(post._id);
-         toast.success("Post reported");
+         await reportPost(post._id, { reason: reportReason });
+         toast.success("Post reported successfully");
+         setShowReportDialog(false);
+         setReportReason("");
       } catch (error) {
          console.error("Error reporting post:", error);
-         toast.error(error.response?.data?.message || "Error reporting post");
-      } finally {
-         setShowSettings(false);
+         toast.error(error.response?.data?.error || "Error reporting post");
       }
    };
 
@@ -279,7 +292,7 @@ const PostCard = ({ post, onUpdate }) => {
                         </button>
                      ) : (
                         <button
-                           onClick={handleReportPost}
+                           onClick={() => setShowReportDialog(true)}
                            className='w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center'>
                            <svg className='w-4 h-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                               <path
@@ -468,28 +481,120 @@ const PostCard = ({ post, onUpdate }) => {
 
          {/* Delete Comment Confirmation Modal */}
          {showDeleteConfirm && (
-            <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-               <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className='bg-white rounded-lg p-6 max-w-sm w-full mx-4'>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>Delete Comment</h3>
-                  <p className='text-gray-600 mb-6'>Are you sure you want to delete this comment? This action cannot be undone.</p>
-                  <div className='flex justify-end space-x-3'>
-                     <button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className='px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'>
-                        Cancel
-                     </button>
-                     <button
-                        onClick={confirmDeleteComment}
-                        className='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'>
-                        Delete
-                     </button>
-                  </div>
-               </motion.div>
+            <div className='fixed inset-0 z-[100] overflow-y-auto'>
+               <div className='flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center'>
+                  <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className='fixed inset-0 transition-opacity'
+                     onClick={() => !isDeleting && setShowDeleteConfirm(false)}>
+                     <div className='absolute inset-0 bg-gray-500 opacity-75'></div>
+                  </motion.div>
+
+                  <motion.div
+                     initial={{ opacity: 0, scale: 0.95 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     exit={{ opacity: 0, scale: 0.95 }}
+                     className='relative inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg z-[110]'>
+                     <div className='mb-4'>
+                        <h3 className='text-lg font-medium text-gray-900'>Delete Post</h3>
+                        <p className='mt-2 text-sm text-gray-500'>
+                           Are you sure you want to delete this post? This action cannot be undone.
+                        </p>
+                     </div>
+
+                     <div className='mt-6 flex justify-end space-x-3'>
+                        <button
+                           type='button'
+                           onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+                           disabled={isDeleting}
+                           className='inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red disabled:opacity-50'>
+                           Cancel
+                        </button>
+                        <button
+                           type='button'
+                           onClick={confirmDeletePost}
+                           disabled={isDeleting}
+                           className='inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50'>
+                           {isDeleting ? (
+                              <div className='flex items-center'>
+                                 <svg className='animate-spin -ml-1 mr-2 h-4 w-4 text-white' fill='none' viewBox='0 0 24 24'>
+                                    <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
+                                    <path
+                                       className='opacity-75'
+                                       fill='currentColor'
+                                       d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
+                                 </svg>
+                                 Deleting...
+                              </div>
+                           ) : (
+                              "Delete Post"
+                           )}
+                        </button>
+                     </div>
+                  </motion.div>
+               </div>
             </div>
          )}
+
+         {/* Report Dialog */}
+         <AnimatePresence>
+            {showReportDialog && (
+               <div className='fixed inset-0 z-[100] overflow-y-auto'>
+                  <div className='flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center'>
+                     <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className='fixed inset-0 transition-opacity'
+                        onClick={() => setShowReportDialog(false)}>
+                        <div className='absolute inset-0 bg-gray-500 opacity-75'></div>
+                     </motion.div>
+
+                     <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className='relative inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg z-[110]'>
+                        <div className='mb-4'>
+                           <h3 className='text-lg font-medium text-gray-900'>Report Post</h3>
+                           <p className='mt-2 text-sm text-gray-500'>
+                              Please provide a reason for reporting this post. This will help our moderators review the content
+                              appropriately.
+                           </p>
+                        </div>
+
+                        <div className='mt-4'>
+                           <textarea
+                              value={reportReason}
+                              onChange={(e) => setReportReason(e.target.value)}
+                              placeholder='Enter your reason for reporting this post...'
+                              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-maple-red focus:border-maple-red'
+                              rows={4}
+                           />
+                        </div>
+
+                        <div className='mt-5 sm:mt-4 sm:flex sm:flex-row-reverse'>
+                           <button
+                              type='button'
+                              onClick={handleReportPost}
+                              disabled={!reportReason.trim()}
+                              className='w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'>
+                              Report
+                           </button>
+                           <button
+                              type='button'
+                              onClick={() => setShowReportDialog(false)}
+                              className='mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maple-red sm:mt-0 sm:w-auto sm:text-sm'>
+                              Cancel
+                           </button>
+                        </div>
+                     </motion.div>
+                  </div>
+               </div>
+            )}
+         </AnimatePresence>
       </motion.div>
    );
 };

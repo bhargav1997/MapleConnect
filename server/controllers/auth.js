@@ -79,7 +79,7 @@ exports.login = async (req, res, next) => {
          });
       }
 
-      // Check for user
+      // Check for user and include isAdmin field
       const user = await User.findOne({ email }).select("+password");
 
       if (!user) {
@@ -99,7 +99,15 @@ exports.login = async (req, res, next) => {
          });
       }
 
-      sendTokenResponse(user, 200, res);
+      // Include isAdmin in the response
+      const userResponse = user.toObject();
+      delete userResponse.password;
+
+      res.status(200).json({
+         success: true,
+         user: userResponse,
+         token: user.getSignedJwtToken(),
+      });
    } catch (err) {
       next(err);
    }
@@ -357,6 +365,7 @@ const sendTokenResponse = (user, statusCode, res) => {
          username: user.username,
          email: user.email,
          profileImage: user.profileImage,
+         isAdmin: user.isAdmin || false,
       },
    });
 };

@@ -9,6 +9,7 @@ const {
    unlikePost,
    addComment,
    deleteComment,
+   reportPost,
 } = require("../controllers/posts");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
@@ -26,5 +27,6 @@ router.route("/:id/like").put(likePost);
 router.route("/:id/unlike").put(unlikePost);
 router.route("/:id/comments").post(addComment);
 router.route("/:id/comments/:commentId").delete(deleteComment);
+router.route("/:id/report").post(reportPost);
 
 module.exports = router;

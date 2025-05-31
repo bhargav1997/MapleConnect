@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import PeopleYouMayKnow from "../components/suggestions/PeopleYouMayKnow";
 import defaultUserImage from "../assets/default-user.png";
+import { toast } from "react-hot-toast";
 
 const Home = () => {
    const { user, isAuthenticated } = useAuth();
@@ -43,6 +44,11 @@ const Home = () => {
       }
    };
 
+   const handlePostCreated = async () => {
+      await fetchPosts();
+      setIsPostModalOpen(false);
+      toast.success("Post created successfully!");
+   };
 
    const getFilteredPosts = () => {
       if (activeTab === "all") {
@@ -357,7 +363,7 @@ const Home = () => {
                      </div>
                   ) : (
                      // Posts list
-                     getFilteredPosts().map((post) => <PostCard key={post._id} post={post} />)
+                     getFilteredPosts().map((post) => <PostCard key={post._id} post={post} onUpdate={fetchPosts} />)
                   )}
                </div>
             </div>
@@ -455,7 +461,7 @@ const Home = () => {
          </div>
 
          {/* Create Post Modal */}
-         <CreatePostModal isOpen={isPostModalOpen} onClose={() => setIsPostModalOpen(false)} />
+         <CreatePostModal isOpen={isPostModalOpen} onClose={() => setIsPostModalOpen(false)} onPostCreated={handlePostCreated} />
       </div>
    );
 };

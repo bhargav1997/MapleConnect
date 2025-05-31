@@ -9,12 +9,12 @@ exports.createPost = async (req, res, next) => {
       // Add user to req.body
       req.body.user = req.user.id;
 
-      // Handle media files
+      // Handle media files if present
       if (req.files && req.files.length > 0) {
-         req.body.media = req.files.map((file) => file.filename);
+         req.body.images = req.files.map((file) => file.filename);
       }
 
-      // Extract hashtags from content
+      // Extract hashtags from content if present
       if (req.body.content) {
          const hashtagRegex = /#(\w+)/g;
          const hashtags = [];
@@ -29,7 +29,7 @@ exports.createPost = async (req, res, next) => {
          }
       }
 
-      // Handle tagged users
+      // Handle tagged users if present
       if (req.body.taggedUserIds && Array.isArray(req.body.taggedUserIds)) {
          req.body.taggedUsers = req.body.taggedUserIds;
          delete req.body.taggedUserIds;
@@ -54,6 +54,7 @@ exports.createPost = async (req, res, next) => {
          delete req.body.pollExpiration;
       }
 
+      // Create the post
       const post = await Post.create(req.body);
 
       // Populate user info for the new post
@@ -66,6 +67,13 @@ exports.createPost = async (req, res, next) => {
          data: populatedPost,
       });
    } catch (err) {
+      console.error("Error creating post:", err);
+      if (err.name === "ValidationError") {
+         return res.status(400).json({
+            success: false,
+            error: Object.values(err.errors).map((val) => val.message)[0],
+         });
+      }
       next(err);
    }
 };
@@ -338,6 +346,46 @@ exports.deleteComment = async (req, res, next) => {
       res.status(200).json({
          success: true,
          data: post,
+      });
+   } catch (err) {
+      next(err);
+   }
+};
+
+// @desc    Report post
+// @route   POST /api/posts/:id/report
+// @access  Private
+exports.reportPost = async (req, res, next) => {
+   try {
+      const post = await Post.findById(req.params.id);
+
+      if (!post) {
+         return res.status(404).json({
+            success: false,
+            error: "Post not found",
+         });
+      }
+
+      // Check if user has already reported this post
+      const alreadyReported = post.reports.some((report) => report.user.toString() === req.user.id);
+      if (alreadyReported) {
+         return res.status(400).json({
+            success: false,
+            error: "You have already reported this post",
+         });
+      }
+
+      // Add report
+      post.reports.push({
+         user: req.user.id,
+         reason: req.body.reason || "Inappropriate content",
+      });
+
+      await post.save();
+
+      res.status(200).json({
+         success: true,
+         message: "Post reported successfully",
       });
    } catch (err) {
       next(err);
