@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/auth");
-const { getConversations, getMessages, deleteMessage, deleteConversation } = require("../controllers/chats");
+const { getConversations, getMessages, deleteMessage, deleteConversation, getUnreadCount } = require("../controllers/chats");
+
+// Get unread message count
+router.get("/messages/unread/count", protect, getUnreadCount);
 
 // Get all conversations for the current user
 router.get("/conversations", protect, getConversations);

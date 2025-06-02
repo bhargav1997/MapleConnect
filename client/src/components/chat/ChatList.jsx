@@ -3,13 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { getConversations } from "../../services/chatService";
 import { useSocket } from "../../context/SocketContext";
 import UserAvatar from "../common/UserAvatar";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 const ChatList = () => {
    const [conversations, setConversations] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
-   const { socket } = useSocket();
+   const { socket, markAsRead } = useSocket();
    const navigate = useNavigate();
 
    const fetchConversations = async () => {
@@ -30,18 +30,66 @@ const ChatList = () => {
       fetchConversations();
 
       if (socket) {
+         // Handle new messages
          socket.on("new message", (data) => {
             setConversations((prev) => {
                const updated = [...prev];
-               const index = updated.findIndex((conv) => conv.user._id === data.senderId);
+               const index = updated.findIndex(
+                  (conv) => conv.user._id === data.message.sender._id || conv.user._id === data.message.receiver._id,
+               );
+
                if (index !== -1) {
+                  // Update existing conversation
                   updated[index] = {
                      ...updated[index],
                      lastMessage: data.message,
-                     unreadCount: updated[index].unreadCount + 1,
+                     unreadCount:
+                        data.message.sender._id === updated[index].user._id ? updated[index].unreadCount + 1 : updated[index].unreadCount,
                   };
+               } else {
+                  // Create new conversation
+                  const otherUser = data.message.sender._id === socket.id ? data.message.receiver : data.message.sender;
+                  updated.unshift({
+                     user: otherUser,
+                     lastMessage: data.message,
+                     unreadCount: data.message.sender._id === otherUser._id ? 1 : 0,
+                  });
                }
                return updated;
+            });
+         });
+
+         // Handle messages being read
+         socket.on("messages read", (data) => {
+            setConversations((prev) => {
+               return prev.map((conv) => {
+                  if (conv.user._id === data.senderId) {
+                     return {
+                        ...conv,
+                        unreadCount: 0, // Reset unread count for this conversation
+                     };
+                  }
+                  return conv;
+               });
+            });
+         });
+
+         // Handle unread count updates
+         socket.on("unread count updated", () => {
+            const currentPath = window.location.pathname;
+            const conversationId = currentPath.split("/messages/")[1];
+
+            setConversations((prev) => {
+               return prev.map((conv) => {
+                  // Only update count if we're not in that conversation
+                  if (conv.user._id === conversationId) {
+                     return {
+                        ...conv,
+                        unreadCount: 0,
+                     };
+                  }
+                  return conv;
+               });
             });
          });
       }
@@ -49,9 +97,23 @@ const ChatList = () => {
       return () => {
          if (socket) {
             socket.off("new message");
+            socket.off("messages read");
+            socket.off("unread count updated");
          }
       };
    }, [socket]);
+
+   const handleChatClick = (conversation) => {
+      // Mark all unread messages in this conversation as read
+      if (conversation.unreadCount > 0 && socket) {
+         console.log("Marking messages as read for conversation:", conversation.user._id);
+         markAsRead(conversation.user._id, []); // Empty array will mark all messages as read
+
+         // Update local state immediately
+         setConversations((prev) => prev.map((conv) => (conv.user._id === conversation.user._id ? { ...conv, unreadCount: 0 } : conv)));
+      }
+      navigate(`/messages/${conversation.user._id}`);
+   };
 
    if (loading) {
       return (
@@ -99,6 +161,8 @@ const ChatList = () => {
       );
    }
 
+   console.log("conversations", conversations);
+
    return (
       <div className='space-y-3'>
          {conversations.map((conversation) => (
@@ -108,9 +172,9 @@ const ChatList = () => {
                animate={{ opacity: 1, y: 0 }}
                whileHover={{ scale: 1.02 }}
                className='relative'>
-               <Link
-                  to={`/messages/${conversation.user._id}`}
-                  className='flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100'>
+               <div
+                  onClick={() => handleChatClick(conversation)}
+                  className='flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100 cursor-pointer'>
                   <UserAvatar user={conversation.user} size='md' />
                   <div className='flex-1 min-w-0'>
                      <div className='flex items-center justify-between'>
@@ -129,7 +193,7 @@ const ChatList = () => {
                         {conversation.unreadCount}
                      </div>
                   )}
-               </Link>
+               </div>
             </motion.div>
          ))}
       </div>

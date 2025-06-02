@@ -83,21 +83,77 @@ exports.createPost = async (req, res, next) => {
 // @access  Private
 exports.getPosts = async (req, res, next) => {
    try {
-      // Get posts from users that the current user follows and their own posts
-      const following = req.user.following;
-      following.push(req.user.id); // Include own posts
+      const { type } = req.query;
+      let query = {};
 
-      const posts = await Post.find({ user: { $in: following } })
-         .sort("-createdAt")
-         .populate("user", "name profileImage username")
-         .populate("comments.user", "name profileImage username");
+      if (type === "trending") {
+         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      res.status(200).json({
-         success: true,
-         count: posts.length,
-         data: posts,
-      });
+         query = {
+            visibility: "public",
+            isPrivate: false,
+            createdAt: { $gte: thirtyDaysAgo },
+         };
+
+         console.log("Trending query:", query);
+
+         const posts = await Post.aggregate([
+            { $match: query },
+            {
+               $addFields: {
+                  engagementScore: {
+                     $add: [
+                        { $size: "$likes" },
+                        { $size: "$comments" },
+                        1, // Add base score so posts with no engagement still show up
+                     ],
+                  },
+               },
+            },
+            { $sort: { engagementScore: -1, createdAt: -1 } },
+            { $limit: 50 },
+         ]);
+
+         // Populate user info
+         await Post.populate(posts, [
+            { path: "user", select: "name username profileImage" },
+            { path: "comments.user", select: "name username profileImage" },
+         ]);
+
+         return res.status(200).json({
+            success: true,
+            data: posts, // Standardized format: only use data field
+         });
+      } else {
+         // Get posts from users that the current user follows and their own posts
+         const following = req.user.following;
+         following.push(req.user.id); // Include own posts
+
+         query = {
+            $or: [
+               // Posts from followed users that are either public or for friends
+               {
+                  user: { $in: following },
+                  $or: [{ visibility: "public" }, { visibility: "friends" }],
+                  isPrivate: false,
+               },
+               // User's own posts
+               { user: req.user.id },
+            ],
+         };
+
+         const posts = await Post.find(query)
+            .sort("-createdAt")
+            .populate("user", "name profileImage username")
+            .populate("comments.user", "name profileImage username");
+
+         return res.status(200).json({
+            success: true,
+            data: posts, // Standardized format: only use data field
+         });
+      }
    } catch (err) {
+      console.error("Error in getPosts:", err);
       next(err);
    }
 };

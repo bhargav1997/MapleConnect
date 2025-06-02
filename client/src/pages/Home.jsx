@@ -3,11 +3,12 @@ import { useAuth } from "../context/AuthContext";
 import { getPosts } from "../services/postService";
 import CreatePostModal from "../components/CreatePostModal";
 import PostCard from "../components/PostCard";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import PeopleYouMayKnow from "../components/suggestions/PeopleYouMayKnow";
 import defaultUserImage from "../assets/default-user.png";
 import { toast } from "react-hot-toast";
+import { motion } from "framer-motion";
 
 const Home = () => {
    const { user, isAuthenticated } = useAuth();
@@ -16,11 +17,10 @@ const Home = () => {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
    const [activeTab, setActiveTab] = useState("all");
-
    const [showWelcome, setShowWelcome] = useState(true);
    const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-   const [trendingTopics, setTrendingTopics] = useState([]);
-   const [upcomingEvents, setUpcomingEvents] = useState([]);
+   const [trendingTopics] = useState([]);
+   const [upcomingEvents] = useState([]);
 
    const postListRef = useRef(null);
 
@@ -28,9 +28,17 @@ const Home = () => {
       try {
          setLoading(true);
          setError("");
-         const response = await getPosts();
-         setPosts(response.data || []);
-         let myPosts = response.data.filter((post) => post.user._id === user.id);
+         console.log("Fetching posts for tab:", activeTab);
+         const response = await getPosts(activeTab);
+         console.log("Posts response:", response);
+
+         // All responses now have the same format: response.data.data
+         const postsData = response.data.data;
+         setPosts(postsData || []);
+
+         console.log("postsData", postsData);
+         // Calculate my posts
+         const myPosts = postsData?.filter((post) => post.user._id === user.id) || [];
          setMyPostsLength(myPosts.length);
       } catch (err) {
          console.error("Error fetching posts:", err);
@@ -50,21 +58,6 @@ const Home = () => {
       toast.success("Post created successfully!");
    };
 
-   const getFilteredPosts = () => {
-      if (activeTab === "all") {
-         return posts;
-      } else if (activeTab === "trending") {
-         // In a real app, you would have a trending algorithm
-         // For now, just sort by likes count
-         return [...posts].sort((a, b) => b.likes.length - a.likes.length);
-      } else if (activeTab === "following") {
-         // In a real app, filter posts from users the current user follows
-         // For demo purposes, just return a subset
-         return posts.filter((_, index) => index % 2 === 0);
-      }
-      return posts;
-   };
-
    const scrollToPostList = () => {
       if (postListRef.current) {
          postListRef.current.scrollIntoView({ behavior: "smooth" });
@@ -75,14 +68,7 @@ const Home = () => {
       if (isAuthenticated) {
          fetchPosts();
       }
-
-      // Set a timeout to hide the welcome banner after 10 seconds
-      const welcomeTimer = setTimeout(() => {
-         setShowWelcome(false);
-      }, 10000);
-
-      return () => clearTimeout(welcomeTimer);
-   }, [isAuthenticated]);
+   }, [isAuthenticated, activeTab]);
 
    return (
       <div className='flex flex-col max-w-7xl mx-auto px-4 py-6'>
@@ -338,8 +324,7 @@ const Home = () => {
                      <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 p-4'>
                         <div className='text-center text-red-500'>{error}</div>
                      </div>
-                  ) : posts.length === 0 ? (
-                     // Empty state
+                  ) : !posts || posts.length === 0 ? (
                      <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 p-8'>
                         <div className='text-center'>
                            <div className='w-16 h-16 mx-auto mb-4 text-gray-400'>
@@ -352,8 +337,14 @@ const Home = () => {
                                  />
                               </svg>
                            </div>
-                           <h3 className='text-lg font-semibold text-gray-900 mb-2'>No Posts Yet</h3>
-                           <p className='text-gray-500 mb-4'>Be the first to share something with your community!</p>
+                           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                              {activeTab === "trending" ? "No Trending Posts Yet" : "No Posts Yet"}
+                           </h3>
+                           <p className='text-gray-500 mb-4'>
+                              {activeTab === "trending"
+                                 ? "Be the first to create an engaging post!"
+                                 : "Be the first to share something with your community!"}
+                           </p>
                            <button
                               onClick={() => setIsPostModalOpen(true)}
                               className='px-4 py-2 bg-maple-red text-white rounded-lg hover:bg-red-700 transition-colors'>
@@ -363,7 +354,7 @@ const Home = () => {
                      </div>
                   ) : (
                      // Posts list
-                     getFilteredPosts().map((post) => <PostCard key={post._id} post={post} onUpdate={fetchPosts} />)
+                     posts.map((post) => <PostCard key={post._id} post={post} onUpdate={fetchPosts} />)
                   )}
                </div>
             </div>

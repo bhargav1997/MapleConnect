@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import SearchBar from "./search/SearchBar";
 import NotificationDropdown from "./notifications/NotificationDropdown";
 import { motion } from "framer-motion";
@@ -8,6 +9,7 @@ import defaultUserImage from "../assets/default-user.png";
 
 const Navbar = () => {
    const { user, isAuthenticated, logout } = useAuth();
+   const { unreadMessageCount } = useSocket();
    const location = useLocation();
    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
    const [scrolled, setScrolled] = useState(false);
@@ -152,25 +154,36 @@ const Navbar = () => {
                   {isAuthenticated ? (
                      <div className='flex items-center space-x-3'>
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                           <Link
-                              to='/messages'
-                              className={`p-2 rounded-full transition-colors shadow-sm ${
-                                 isActive("/messages") ? "text-maple-red  shadow-inner" : "text-gray-500 hover:text-maple-red "
-                              }`}>
-                              <svg
-                                 xmlns='http://www.w3.org/2000/svg'
-                                 className='h-6 w-6'
-                                 fill='none'
-                                 viewBox='0 0 24 24'
-                                 stroke='currentColor'>
-                                 <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={1.5}
-                                    d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
-                                 />
-                              </svg>
-                           </Link>
+                           <div className='relative w-10 h-10 flex items-center justify-center'>
+                              <Link
+                                 to='/messages'
+                                 className={`w-full h-full flex items-center justify-center rounded-full transition-colors shadow-sm ${
+                                    isActive("/messages") ? "text-maple-red shadow-inner" : "text-gray-500 hover:text-maple-red"
+                                 }`}>
+                                 <svg
+                                    xmlns='http://www.w3.org/2000/svg'
+                                    className='h-6 w-6'
+                                    fill='none'
+                                    viewBox='0 0 24 24'
+                                    stroke='currentColor'>
+                                    <path
+                                       strokeLinecap='round'
+                                       strokeLinejoin='round'
+                                       strokeWidth={1.5}
+                                       d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
+                                    />
+                                 </svg>
+                              </Link>
+
+                              {unreadMessageCount > 0 && (
+                                 <motion.span
+                                    initial={{ scale: 0.5, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className='absolute top-[2px] right-[2px] bg-maple-red text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-[4px] shadow-sm border border-white z-10'>
+                                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                                 </motion.span>
+                              )}
+                           </div>
                         </motion.div>
 
                         <NotificationDropdown />
@@ -302,6 +315,7 @@ const Navbar = () => {
                            path: "/messages",
                            label: "Messages",
                            icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
+                           badge: unreadMessageCount > 0 ? unreadMessageCount : null,
                         },
                         {
                            path: "/notifications",
@@ -326,14 +340,21 @@ const Navbar = () => {
                               isActive(item.path) ? " text-maple-red font-medium" : "text-gray-700 hover:bg-gray-50 hover:text-maple-red"
                            } transition-colors duration-200`}
                            onClick={() => setIsMobileMenuOpen(false)}>
-                           <svg
-                              xmlns='http://www.w3.org/2000/svg'
-                              className='h-5 w-5 mr-3'
-                              fill='none'
-                              viewBox='0 0 24 24'
-                              stroke='currentColor'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d={item.icon} />
-                           </svg>
+                           <div className='relative'>
+                              <svg
+                                 xmlns='http://www.w3.org/2000/svg'
+                                 className='h-5 w-5 mr-3'
+                                 fill='none'
+                                 viewBox='0 0 24 24'
+                                 stroke='currentColor'>
+                                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d={item.icon} />
+                              </svg>
+                              {item.badge && (
+                                 <span className='absolute -top-2 -right-2 bg-maple-red text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1 shadow-sm border border-white'>
+                                    {item.badge > 99 ? "99+" : item.badge}
+                                 </span>
+                              )}
+                           </div>
                            <span className='font-medium'>{item.label}</span>
                         </Link>
                      ))}

@@ -1,6 +1,29 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
 
+// Get unread message count for the current user
+exports.getUnreadCount = async (req, res) => {
+   try {
+      const userId = req.user.id;
+
+      const unreadCount = await Message.countDocuments({
+         receiver: userId,
+         readBy: { $ne: userId },
+      });
+
+      res.json({
+         success: true,
+         count: unreadCount,
+      });
+   } catch (error) {
+      console.error("Error getting unread count:", error);
+      res.status(500).json({
+         success: false,
+         message: "Failed to get unread message count",
+      });
+   }
+};
+
 // Get all conversations for the current user
 exports.getConversations = async (req, res) => {
    try {
@@ -14,25 +37,38 @@ exports.getConversations = async (req, res) => {
          .populate("sender", "name username profileImage")
          .populate("receiver", "name username profileImage");
 
-      // Group messages by conversation
-      const conversations = {};
+      // Group messages by conversation and calculate unread counts
+      const conversationsMap = new Map();
+
       messages.forEach((message) => {
-         const otherUserId = message.sender._id.toString() === userId ? message.receiver._id : message.sender._id;
-         if (!conversations[otherUserId]) {
-            conversations[otherUserId] = {
-               user: message.sender._id.toString() === userId ? message.receiver : message.sender,
+         const isUserSender = message.sender._id.toString() === userId;
+         const otherUser = isUserSender ? message.receiver : message.sender;
+         const otherUserId = otherUser._id.toString();
+
+         if (!conversationsMap.has(otherUserId)) {
+            conversationsMap.set(otherUserId, {
+               user: otherUser,
                lastMessage: message,
+               messages: [],
                unreadCount: 0,
-            };
+            });
          }
-         if (!message.readBy.includes(userId)) {
-            conversations[otherUserId].unreadCount++;
+
+         const conversation = conversationsMap.get(otherUserId);
+         conversation.messages.push(message);
+
+         // Update unread count if message is received and not read
+         if (!isUserSender && !message.readBy.includes(userId)) {
+            conversation.unreadCount++;
          }
       });
 
+      // Convert map to array and format response
+      const conversations = Array.from(conversationsMap.values()).map(({ messages, ...conv }) => conv);
+
       res.json({
          success: true,
-         data: Object.values(conversations),
+         data: conversations,
       });
    } catch (error) {
       console.error("Error getting conversations:", error);

@@ -71,6 +71,47 @@ const UserSchema = new mongoose.Schema(
       ],
       resetPasswordToken: String,
       resetPasswordExpire: Date,
+      feedPreferences: {
+         sortBy: {
+            type: String,
+            enum: ["recent", "popular", "relevant"],
+            default: "recent",
+         },
+         contentTypes: {
+            type: [String],
+            enum: ["text", "images", "polls"],
+            default: ["text", "images", "polls"],
+         },
+         prioritizeFollowing: {
+            type: Boolean,
+            default: true,
+         },
+         showReplies: {
+            type: Boolean,
+            default: true,
+         },
+         topicsOfInterest: [
+            {
+               type: String,
+               trim: true,
+            },
+         ],
+         excludedTopics: [
+            {
+               type: String,
+               trim: true,
+            },
+         ],
+         minimumEngagement: {
+            type: Number,
+            default: 0, // 0 means show all posts
+         },
+         timeWindow: {
+            type: String,
+            enum: ["day", "week", "month", "all"],
+            default: "all",
+         },
+      },
    },
    {
       timestamps: true,

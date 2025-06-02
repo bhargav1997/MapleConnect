@@ -1,12 +1,13 @@
 import api from "./api";
 
 // Get all posts
-export const getPosts = async (page = 1, limit = 10) => {
+export const getPosts = async (type = "all") => {
    try {
-      const response = await api.get(`/posts?page=${page}&limit=${limit}`);
-      return response.data;
+      const response = await api.get(`/posts${type === "trending" ? "?type=trending" : ""}`);
+      return response;
    } catch (error) {
-      throw error.response?.data || error;
+      console.error("Error in getPosts:", error);
+      throw new Error(error.response?.data?.error || "Failed to fetch posts");
    }
 };
 

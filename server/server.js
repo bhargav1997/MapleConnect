@@ -37,13 +37,26 @@ const io = new Server(server, {
    },
 });
 
+// Track online users
+const onlineUsers = new Map();
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
    console.log("User connected:", socket.id);
+   let currentUserId = null;
 
    // Join user's personal room
    socket.on("join", (userId) => {
+      currentUserId = userId;
       socket.join(userId);
+      onlineUsers.set(userId, socket.id);
+
+      // Broadcast user's online status
+      io.emit("user_status", {
+         userId: userId,
+         status: "online",
+      });
+
       console.log(`User ${userId} joined their room`);
    });
 
@@ -67,17 +80,35 @@ io.on("connection", (socket) => {
             .populate("sender", "name profileImage")
             .populate("receiver", "name profileImage");
 
+         // Get updated unread count for receiver
+         const unreadCount = await Message.countDocuments({
+            receiver,
+            readBy: { $ne: receiver },
+         });
+
          // Emit to receiver's room
          io.to(receiver).emit("new message", {
             sender,
             message: populatedMessage,
          });
 
+         // Also emit updated unread count
+         io.to(receiver).emit("unread count updated", { count: unreadCount });
+
          // Emit back to sender for confirmation
          io.to(sender).emit("message sent", {
             receiver,
             message: populatedMessage,
          });
+
+         // Send notification if user is not in the chat
+         const receiverSocket = onlineUsers.get(receiver);
+         if (receiverSocket && receiverSocket !== socket.id) {
+            io.to(receiver).emit("message notification", {
+               sender,
+               message: populatedMessage,
+            });
+         }
       } catch (error) {
          console.error("Error handling private message:", error);
          socket.emit("error", { message: "Failed to send message" });
@@ -91,12 +122,65 @@ io.on("connection", (socket) => {
    });
 
    // Handle read receipts
-   socket.on("mark as read", (data) => {
-      const { senderId, receiverId, messageIds } = data;
-      io.to(senderId).emit("messages read", { receiverId, messageIds });
+   socket.on("mark as read", async (data) => {
+      try {
+         const { senderId, receiverId, messageIds, markAll } = data;
+
+         if (markAll) {
+            // Mark all unread messages from sender as read
+            await Message.updateMany(
+               {
+                  sender: senderId,
+                  receiver: receiverId,
+                  readBy: { $ne: receiverId },
+               },
+               { $addToSet: { readBy: receiverId } },
+            );
+
+            // Get all updated messages to emit
+            const updatedMessages = await Message.find({
+               sender: senderId,
+               receiver: receiverId,
+               readBy: receiverId,
+            }).select("_id");
+
+            // Emit to sender that messages were read
+            io.to(senderId).emit("messages read", {
+               receiverId,
+               messageIds: updatedMessages.map((msg) => msg._id),
+            });
+         } else {
+            // Mark specific messages as read
+            await Message.updateMany({ _id: { $in: messageIds } }, { $addToSet: { readBy: receiverId } });
+
+            // Emit to sender that messages were read
+            io.to(senderId).emit("messages read", { receiverId, messageIds });
+         }
+
+         // Get updated unread count for receiver
+         const receiverUnreadCount = await Message.countDocuments({
+            receiver: receiverId,
+            readBy: { $ne: receiverId },
+         });
+
+         // Emit updated count to receiver
+         io.to(receiverId).emit("unread count updated", { count: receiverUnreadCount });
+
+         console.log(`Updated unread count for receiver: ${receiverUnreadCount}`);
+      } catch (error) {
+         console.error("Error marking messages as read:", error);
+      }
    });
 
    socket.on("disconnect", () => {
+      if (currentUserId) {
+         onlineUsers.delete(currentUserId);
+         // Broadcast user's offline status
+         io.emit("user_status", {
+            userId: currentUserId,
+            status: "offline",
+         });
+      }
       console.log("User disconnected:", socket.id);
    });
 });

@@ -25,6 +25,8 @@ const getSocketUrl = () => {
 
 export const SocketProvider = ({ children }) => {
    const [socket, setSocket] = useState(null);
+   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+   const [onlineUsers, setOnlineUsers] = useState(new Set());
    const { user } = useAuth();
 
    useEffect(() => {
@@ -49,6 +51,7 @@ export const SocketProvider = ({ children }) => {
 
          newSocket.on("disconnect", () => {
             console.log("Socket disconnected");
+            setOnlineUsers(new Set());
          });
 
          newSocket.on("error", (error) => {
@@ -56,7 +59,84 @@ export const SocketProvider = ({ children }) => {
             toast.error(error.message || "Connection error");
          });
 
+         // Listen for new messages to update unread count
+         newSocket.on("new message", (data) => {
+            if (data.sender !== user._id) {
+               // Only increment if we're not in the chat with this sender
+               const currentPath = window.location.pathname;
+               const isInChat = currentPath.includes(`/messages/${data.sender}`);
+               if (!isInChat) {
+                  console.log("Incrementing unread count for new message");
+                  setUnreadMessageCount((prev) => prev + 1);
+               }
+            }
+         });
+
+         // Listen for message notifications
+         newSocket.on("message notification", (data) => {
+            if (data.sender !== user._id) {
+               const senderName = data.message.sender.name || "Someone";
+               toast.custom(
+                  (t) => (
+                     <div
+                        className={`${
+                           t.visible ? "animate-enter" : "animate-leave"
+                        } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+                        <div className='flex-1 w-0 p-4'>
+                           <div className='flex items-start'>
+                              <div className='ml-3 flex-1'>
+                                 <p className='text-sm font-medium text-gray-900'>{senderName}</p>
+                                 <p className='mt-1 text-sm text-gray-500'>{data.message.content}</p>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  ),
+                  {
+                     duration: 4000,
+                     position: "top-right",
+                  },
+               );
+            }
+         });
+
+         // Listen for messages being read
+         newSocket.on("messages read", (data) => {
+            console.log("Messages read event received:", data);
+         });
+
+         // Listen for unread count updates
+         newSocket.on("unread count updated", (data) => {
+            console.log("Unread count updated:", data.count);
+            setUnreadMessageCount(data.count);
+         });
+
+         // Listen for user status updates
+         newSocket.on("user_status", (data) => {
+            setOnlineUsers((prev) => {
+               const newSet = new Set(prev);
+               if (data.status === "online") {
+                  newSet.add(data.userId);
+               } else {
+                  newSet.delete(data.userId);
+               }
+               return newSet;
+            });
+         });
+
          setSocket(newSocket);
+
+         // Fetch initial unread count
+         const fetchUnreadCount = async () => {
+            try {
+               const response = await api.get("/chats/messages/unread/count");
+               console.log("Initial unread count:", response.data.count);
+               setUnreadMessageCount(response.data.count);
+            } catch (error) {
+               console.error("Error fetching unread count:", error);
+            }
+         };
+         fetchUnreadCount();
 
          return () => {
             if (newSocket) {
@@ -88,12 +168,18 @@ export const SocketProvider = ({ children }) => {
 
    const markAsRead = (senderId, messageIds) => {
       if (socket) {
+         console.log("Marking messages as read:", { senderId, messageIds });
          socket.emit("mark as read", {
             senderId,
             receiverId: user._id,
-            messageIds,
+            messageIds: messageIds, // Empty array will mark all messages as read
+            markAll: messageIds.length === 0, // Add flag to indicate if we should mark all messages
          });
       }
+   };
+
+   const isUserOnline = (userId) => {
+      return onlineUsers.has(userId);
    };
 
    const value = {
@@ -101,6 +187,8 @@ export const SocketProvider = ({ children }) => {
       sendMessage,
       sendTypingStatus,
       markAsRead,
+      unreadMessageCount,
+      isUserOnline,
    };
 
    return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
