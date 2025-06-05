@@ -20,31 +20,7 @@ export const getPostById = async (id) => {
 // Create post
 export const createPost = async (postData) => {
    try {
-      let requestData;
-      let headers = {};
-
-      // Check if postData contains files
-      if (postData instanceof FormData) {
-         requestData = postData;
-         headers = {
-            "Content-Type": "multipart/form-data",
-         };
-      } else {
-         // For text-only posts, ensure content is properly formatted
-         requestData = {
-            content: postData.content,
-            location: postData.location || undefined,
-            feeling: postData.feeling || undefined,
-            activity: postData.activity || undefined,
-            visibility: postData.visibility || "public",
-            taggedUserIds: postData.taggedUserIds || [],
-         };
-
-         // Remove undefined fields
-         Object.keys(requestData).forEach((key) => requestData[key] === undefined && delete requestData[key]);
-      }
-
-      const response = await api.post("/posts", requestData, { headers });
+      const response = await api.post("/posts", postData);
 
       // Check if we have a response and data
       if (!response || !response.data) {
@@ -59,8 +35,8 @@ export const createPost = async (postData) => {
       if (error.response?.data?.error) {
          throw new Error(error.response.data.error);
       }
-      // For network or other errors
-      throw new Error("Failed to create post. Please try again.");
+      // Otherwise throw a generic error
+      throw new Error("Failed to create post");
    }
 };
 
@@ -111,6 +87,27 @@ export const reportPost = async (id, { reason }) => {
       return response.data;
    } catch (error) {
       console.error("Error reporting post:", error);
+      throw error;
+   }
+};
+
+export const getFilteredFollowingPosts = async (userId) => {
+   try {
+      const response = await api.get(`/posts/following/${userId}`);
+      return response.data;
+   } catch (error) {
+      console.error("Error fetching filtered following posts:", error);
+      throw error;
+   }
+};
+
+// Vote on poll option
+export const voteOnPoll = async (postId, optionIndex) => {
+   try {
+      const response = await api.post(`/posts/${postId}/vote`, { optionIndex });
+      return response;
+   } catch (error) {
+      console.error("Error voting on poll:", error);
       throw error;
    }
 };

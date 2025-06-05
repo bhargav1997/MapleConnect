@@ -8,36 +8,7 @@ const cloudinary = require("../config/cloudinary");
 // @access  Private
 exports.createPost = asyncHandler(async (req, res, next) => {
    // Add user to req.body
-   req.body.creator = req.user.id;
-
-   // Handle image uploads
-   if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) => {
-         return new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(
-               file.path,
-               {
-                  folder: "posts",
-                  resource_type: "auto",
-               },
-               (error, result) => {
-                  if (error) {
-                     reject(error);
-                  } else {
-                     resolve(result.secure_url);
-                  }
-               },
-            );
-         });
-      });
-
-      try {
-         const uploadedUrls = await Promise.all(uploadPromises);
-         req.body.images = uploadedUrls;
-      } catch (error) {
-         return next(new ErrorResponse("Error uploading images", 500));
-      }
-   }
+   req.body.user = req.user.id;
 
    const post = await Post.create(req.body);
 

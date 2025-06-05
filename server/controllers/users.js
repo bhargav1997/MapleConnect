@@ -258,7 +258,17 @@ const unfollowUser = async (req, res, next) => {
 // @access  Private
 const getUserPosts = async (req, res, next) => {
    try {
-      const posts = await Post.find({ user: req.params.id })
+      let query = { user: req.params.id };
+
+      // If viewing someone else's profile, only show public and friends posts
+      if (req.user.id !== req.params.id) {
+         const targetUser = await User.findById(req.params.id);
+         const isFollowing = targetUser.followers.includes(req.user.id);
+
+         query.$or = [{ visibility: "public" }, ...(isFollowing ? [{ visibility: "friends" }] : [])];
+      }
+
+      const posts = await Post.find(query)
          .sort("-createdAt")
          .populate("user", "name profileImage username")
          .populate("comments.user", "name profileImage username");

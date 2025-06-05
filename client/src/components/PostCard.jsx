@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { likePost, unlikePost, commentOnPost, deleteComment, deletePost, reportPost } from "../services/postService";
+import {
+   likePost,
+   unlikePost,
+   commentOnPost,
+   deleteComment,
+   deletePost,
+   reportPost,
+   voteOnPoll,
+   updatePost,
+} from "../services/postService";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { getUserInitials } from "../utils/helpers";
@@ -19,8 +28,14 @@ const PostCard = ({ post, onUpdate }) => {
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
    const [showReportDialog, setShowReportDialog] = useState(false);
    const [reportReason, setReportReason] = useState("");
-   const [commentToDelete, setCommentToDelete] = useState(null);
    const [isDeleting, setIsDeleting] = useState(false);
+
+   // Edit mode state
+   const [isEditing, setIsEditing] = useState(false);
+   const [editedContent, setEditedContent] = useState(post.content);
+   const [editedImageUrls, setEditedImageUrls] = useState(post.imageUrls || []);
+   const [isUpdating, setIsUpdating] = useState(false);
+   const [newImageUrl, setNewImageUrl] = useState("");
 
    const handleLike = async () => {
       if (!user) {
@@ -88,21 +103,13 @@ const PostCard = ({ post, onUpdate }) => {
          return;
       }
 
-      setCommentToDelete(commentId);
-      setShowDeleteConfirm(true);
-   };
-
-   const confirmDeleteComment = async () => {
       try {
-         await deleteComment(post._id, commentToDelete);
+         await deleteComment(post._id, commentId);
          toast.success("Comment deleted");
          if (onUpdate) onUpdate();
       } catch (error) {
          console.error("Error deleting comment:", error);
          toast.error(error.response?.data?.message || "Error deleting comment");
-      } finally {
-         setShowDeleteConfirm(false);
-         setCommentToDelete(null);
       }
    };
 
@@ -184,6 +191,22 @@ const PostCard = ({ post, onUpdate }) => {
       }
    };
 
+   const handleVote = async (postId, optionIndex) => {
+      if (!user) {
+         toast.error("Please login to vote");
+         return;
+      }
+
+      try {
+         await voteOnPoll(postId, optionIndex);
+         if (onUpdate) onUpdate();
+         toast.success("Vote recorded successfully");
+      } catch (error) {
+         console.error("Error voting on poll:", error);
+         toast.error(error.response?.data?.message || "Error voting on poll");
+      }
+   };
+
    const formatDate = (dateString) => {
       const now = new Date();
       const postDate = new Date(dateString);
@@ -201,6 +224,55 @@ const PostCard = ({ post, onUpdate }) => {
       } else {
          const options = { month: "short", day: "numeric" };
          return postDate.toLocaleDateString(undefined, options);
+      }
+   };
+
+   // Handle edit mode
+   const handleEdit = () => {
+      setIsEditing(true);
+      setShowSettings(false);
+   };
+
+   // Handle adding new image URL
+   const handleAddImageUrl = () => {
+      if (!newImageUrl.trim()) return;
+      if (editedImageUrls.length >= 4) {
+         toast.error("Maximum 4 images allowed");
+         return;
+      }
+      setEditedImageUrls([...editedImageUrls, newImageUrl.trim()]);
+      setNewImageUrl("");
+   };
+
+   // Handle removing image URL
+   const handleRemoveImage = (index) => {
+      setEditedImageUrls(editedImageUrls.filter((_, i) => i !== index));
+   };
+
+   // Handle save edit
+   const handleSaveEdit = async () => {
+      if (!editedContent.trim()) {
+         toast.error("Post content cannot be empty");
+         return;
+      }
+
+      setIsUpdating(true);
+      try {
+         const response = await updatePost(post._id, {
+            content: editedContent.trim(),
+            imageUrls: editedImageUrls,
+         });
+
+         if (response.data.success) {
+            toast.success("Post updated successfully");
+            setIsEditing(false);
+            if (onUpdate) onUpdate();
+         }
+      } catch (error) {
+         console.error("Error updating post:", error);
+         toast.error(error.response?.data?.error || "Error updating post");
+      } finally {
+         setIsUpdating(false);
       }
    };
 
@@ -230,6 +302,26 @@ const PostCard = ({ post, onUpdate }) => {
                      </Link>
                      <div className='flex items-center text-gray-500 text-sm'>
                         <span>{formatDate(post.createdAt)}</span>
+                        {post.feeling && (
+                           <>
+                              <span className='mx-1'>•</span>
+                              <span className='flex items-center'>
+                                 <span className='mr-1 text-base'>
+                                    {post.feeling.toLowerCase() === "happy" && "😊"}
+                                    {post.feeling.toLowerCase() === "sad" && "😢"}
+                                    {post.feeling.toLowerCase() === "excited" && "🎉"}
+                                    {post.feeling.toLowerCase() === "blessed" && "🙏"}
+                                    {post.feeling.toLowerCase() === "loved" && "❤️"}
+                                    {post.feeling.toLowerCase() === "angry" && "😠"}
+                                    {post.feeling.toLowerCase() === "thankful" && "🙏"}
+                                    {post.feeling.toLowerCase() === "grateful" && "🙏"}
+                                    {post.feeling.toLowerCase() === "amazing" && "🤩"}
+                                    {post.feeling.toLowerCase() === "wonderful" && "✨"}
+                                 </span>
+                                 feeling&nbsp;<span className='font-medium'>{post.feeling.toLowerCase()}</span>
+                              </span>
+                           </>
+                        )}
                         {post.location && (
                            <>
                               <span className='mx-1'>•</span>
@@ -276,21 +368,37 @@ const PostCard = ({ post, onUpdate }) => {
                      initial={{ opacity: 0, scale: 0.95 }}
                      animate={{ opacity: 1, scale: 1 }}
                      className='absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10'>
-                     {post.user._id === user?.id ? (
-                        <button
-                           onClick={handleDeletePost}
-                           className='w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center'>
-                           <svg className='w-4 h-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                              <path
-                                 strokeLinecap='round'
-                                 strokeLinejoin='round'
-                                 strokeWidth={2}
-                                 d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                              />
-                           </svg>
-                           Delete Post
-                        </button>
-                     ) : (
+                     {post.user._id === user?.id && (
+                        <>
+                           <button
+                              onClick={handleEdit}
+                              className='w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors flex items-center'>
+                              <svg className='w-4 h-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                 <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+                                 />
+                              </svg>
+                              Edit Post
+                           </button>
+                           <button
+                              onClick={handleDeletePost}
+                              className='w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center'>
+                              <svg className='w-4 h-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                 <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                 />
+                              </svg>
+                              Delete Post
+                           </button>
+                        </>
+                     )}
+                     {post.user._id !== user?.id && (
                         <button
                            onClick={() => setShowReportDialog(true)}
                            className='w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center'>
@@ -312,25 +420,167 @@ const PostCard = ({ post, onUpdate }) => {
 
          {/* Post Content */}
          <div className='px-4 pb-3'>
-            <p className='text-gray-800 text-[15px] leading-relaxed'>{post.content}</p>
+            {isEditing ? (
+               <div className='space-y-4'>
+                  <textarea
+                     value={editedContent}
+                     onChange={(e) => setEditedContent(e.target.value)}
+                     className='w-full p-3 border border-gray-300 rounded-lg focus:ring-maple-red focus:border-maple-red transition-colors'
+                     rows={4}
+                     placeholder="What's on your mind?"
+                  />
+
+                  {/* Image URLs Section */}
+                  <div className='space-y-2'>
+                     <div className='flex items-center space-x-2'>
+                        <input
+                           type='url'
+                           value={newImageUrl}
+                           onChange={(e) => setNewImageUrl(e.target.value)}
+                           placeholder='Add image URL'
+                           className='flex-1 p-2 border border-gray-300 rounded-lg focus:ring-maple-red focus:border-maple-red'
+                        />
+                        <button
+                           onClick={handleAddImageUrl}
+                           className='px-4 py-2 bg-maple-red text-white rounded-lg hover:bg-maple-red-dark transition-colors'>
+                           Add
+                        </button>
+                     </div>
+
+                     {/* Display existing images */}
+                     {editedImageUrls.length > 0 && (
+                        <div className='grid grid-cols-2 gap-2'>
+                           {editedImageUrls.map((url, index) => (
+                              <div key={index} className='relative'>
+                                 <img
+                                    src={url}
+                                    alt={`Preview ${index + 1}`}
+                                    className='w-full h-32 object-cover rounded-lg'
+                                    onError={(e) => {
+                                       e.target.src = "https://via.placeholder.com/300x200?text=Invalid+Image+URL";
+                                    }}
+                                 />
+                                 <button
+                                    onClick={() => handleRemoveImage(index)}
+                                    className='absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600'>
+                                    <svg className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M6 18L18 6M6 6l12 12' />
+                                    </svg>
+                                 </button>
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className='flex justify-end space-x-2'>
+                     <button
+                        onClick={() => setIsEditing(false)}
+                        className='px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors'>
+                        Cancel
+                     </button>
+                     <button
+                        onClick={handleSaveEdit}
+                        disabled={isUpdating}
+                        className={`px-4 py-2 rounded-lg text-white ${
+                           isUpdating ? "bg-maple-red/60" : "bg-maple-red hover:bg-maple-red-dark"
+                        } transition-colors`}>
+                        {isUpdating ? "Saving..." : "Save Changes"}
+                     </button>
+                  </div>
+               </div>
+            ) : (
+               <p className='text-gray-800 text-[15px] leading-relaxed'>{post.content}</p>
+            )}
          </div>
 
          {/* Post Media */}
-         {post.images && post.images.length > 0 && (
+         {!isEditing && post.imageUrls?.length > 0 && (
             <div className='w-full'>
-               {post.images.length === 1 ? (
-                  <div className='relative aspect-[4/3] w-full'>
-                     <img src={post.images[0]} alt='Post media' className='absolute inset-0 w-full h-full object-cover' />
+               {post.imageUrls.length === 1 ? (
+                  <div className='relative pb-[75%] w-full'>
+                     <img
+                        src={post.imageUrls[0]}
+                        alt='Post media'
+                        className='absolute inset-0 w-full h-full object-contain bg-black/5'
+                        onError={(e) => {
+                           e.target.onerror = null;
+                           e.target.src = "/placeholder-image.png";
+                        }}
+                     />
                   </div>
                ) : (
-                  <div className='grid grid-cols-2 gap-1'>
-                     {post.images.map((image, index) => (
-                        <div key={index} className='relative aspect-square'>
-                           <img src={image} alt={`Post media ${index + 1}`} className='absolute inset-0 w-full h-full object-cover' />
+                  <div
+                     className={`grid gap-1 ${
+                        post.imageUrls.length === 2 ? "grid-cols-2" : post.imageUrls.length === 3 ? "grid-cols-2" : "grid-cols-2"
+                     }`}>
+                     {post.imageUrls.map((image, index) => (
+                        <div key={index} className={`relative ${post.imageUrls.length === 3 && index === 0 ? "col-span-2" : ""}`}>
+                           <div className='pb-[100%] relative'>
+                              <img
+                                 src={image}
+                                 alt={`Post media ${index + 1}`}
+                                 className='absolute inset-0 w-full h-full object-cover'
+                                 onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = "/placeholder-image.png";
+                                 }}
+                              />
+                           </div>
                         </div>
                      ))}
                   </div>
                )}
+            </div>
+         )}
+
+         {/* Poll Section */}
+         {post.poll && post.poll.options && post.poll.options.length > 0 && (
+            <div className='px-4 pb-4'>
+               <div className='bg-gray-50 rounded-xl p-4'>
+                  <h3 className='font-semibold text-gray-900 mb-3'>{post.poll.question}</h3>
+                  <div className='space-y-2'>
+                     {post.poll.options.map((option, index) => {
+                        const totalVotes = post.poll.options.reduce((sum, opt) => sum + opt.votes.length, 0);
+                        const votePercentage = totalVotes > 0 ? (option.votes.length / totalVotes) * 100 : 0;
+                        const hasVoted = user && option.votes.includes(user.id);
+
+                        return (
+                           <div key={index} className='relative'>
+                              <button
+                                 onClick={() => handleVote(post._id, index)}
+                                 disabled={!user}
+                                 className={`w-full text-left p-3 rounded-lg border transition-all relative z-10 ${
+                                    hasVoted
+                                       ? "bg-maple-red/10 border-maple-red/20 text-maple-red"
+                                       : "bg-white border-gray-200 hover:border-maple-red/30 hover:bg-maple-red/5"
+                                 }`}>
+                                 <div className='flex justify-between items-center'>
+                                    <span>{option.text}</span>
+                                    <span className='text-sm font-medium'>{votePercentage.toFixed(1)}%</span>
+                                 </div>
+                              </button>
+                              <div
+                                 className='absolute inset-0 bg-maple-red/5 rounded-lg transition-all'
+                                 style={{
+                                    width: `${votePercentage}%`,
+                                    zIndex: 1,
+                                 }}
+                              />
+                           </div>
+                        );
+                     })}
+                  </div>
+                  <div className='mt-3 text-sm text-gray-500 flex items-center justify-between'>
+                     {post.poll.options.reduce((sum, option) => sum + option.votes.length, 0) > 0 && (
+                        <span>{post.poll.options.reduce((sum, option) => sum + option.votes.length, 0)} votes</span>
+                     )}
+                     {post.poll.expiresAt && (
+                        <span>{new Date(post.poll.expiresAt) > new Date() ? `Ends ${formatDate(post.poll.expiresAt)}` : "Poll ended"}</span>
+                     )}
+                  </div>
+               </div>
             </div>
          )}
 

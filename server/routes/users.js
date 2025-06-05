@@ -16,6 +16,7 @@ const {
 } = require("../controllers/users");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -40,5 +41,36 @@ router.get("/:userId/followers", getFollowers);
 
 // Get user's following
 router.get("/:userId/following", getFollowing);
+
+// Add this route to handle feed preferences
+router.put("/feed-preferences", async (req, res) => {
+   try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      user.feedPreferences = {
+         ...user.feedPreferences,
+         ...req.body,
+      };
+
+      await user.save();
+
+      res.status(200).json({
+         success: true,
+         data: user.feedPreferences,
+      });
+   } catch (err) {
+      console.error("Error updating feed preferences:", err);
+      res.status(500).json({
+         success: false,
+         error: "Server error",
+      });
+   }
+});
 
 module.exports = router;

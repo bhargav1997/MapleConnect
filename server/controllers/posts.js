@@ -9,9 +9,9 @@ exports.createPost = async (req, res, next) => {
       // Add user to req.body
       req.body.user = req.user.id;
 
-      // Handle media files if present
-      if (req.files && req.files.length > 0) {
-         req.body.images = req.files.map((file) => file.filename);
+      // Handle image URLs if present
+      if (req.body.imageUrls && Array.isArray(req.body.imageUrls)) {
+         req.body.imageUrls = req.body.imageUrls;
       }
 
       // Extract hashtags from content if present
@@ -85,7 +85,11 @@ exports.getPosts = async (req, res, next) => {
    try {
       const { type } = req.query;
       let query = {};
+      let sort = {};
 
+      // Get user's feed preferences
+      const user = await User.findById(req.user.id);
+      const prefs = user.feedPreferences || {};
       if (type === "trending") {
          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -95,18 +99,12 @@ exports.getPosts = async (req, res, next) => {
             createdAt: { $gte: thirtyDaysAgo },
          };
 
-         console.log("Trending query:", query);
-
          const posts = await Post.aggregate([
             { $match: query },
             {
                $addFields: {
                   engagementScore: {
-                     $add: [
-                        { $size: "$likes" },
-                        { $size: "$comments" },
-                        1, // Add base score so posts with no engagement still show up
-                     ],
+                     $add: [{ $size: "$likes" }, { $size: "$comments" }, 1],
                   },
                },
             },
@@ -114,7 +112,6 @@ exports.getPosts = async (req, res, next) => {
             { $limit: 50 },
          ]);
 
-         // Populate user info
          await Post.populate(posts, [
             { path: "user", select: "name username profileImage" },
             { path: "comments.user", select: "name username profileImage" },
@@ -122,34 +119,106 @@ exports.getPosts = async (req, res, next) => {
 
          return res.status(200).json({
             success: true,
-            data: posts, // Standardized format: only use data field
+            data: posts,
          });
-      } else {
-         // Get posts from users that the current user follows and their own posts
-         const following = req.user.following;
-         following.push(req.user.id); // Include own posts
+      } else if (type === "following") {
+         // Get posts from users that the current user follows
+         const following = user.following || [];
 
          query = {
-            $or: [
-               // Posts from followed users that are either public or for friends
-               {
-                  user: { $in: following },
-                  $or: [{ visibility: "public" }, { visibility: "friends" }],
-                  isPrivate: false,
-               },
-               // User's own posts
-               { user: req.user.id },
-            ],
+            user: { $in: following },
+            $or: [{ visibility: "public" }, { visibility: "friends", user: { $in: user.followers || [] } }],
+            isPrivate: false,
          };
 
          const posts = await Post.find(query)
             .sort("-createdAt")
+            .populate("user", "name username profileImage")
+            .populate("comments.user", "name username profileImage")
+            .populate("likes", "name username profileImage");
+
+         return res.status(200).json({
+            success: true,
+            data: posts,
+         });
+      } else {
+         // Build query based on user preferences
+         const timeFilter = getTimeFilter(prefs.timeWindow);
+         if (timeFilter) {
+            query.createdAt = timeFilter;
+         }
+
+         // Content type filtering
+         if (prefs.contentTypes && prefs.contentTypes.length > 0) {
+            query.$or = prefs.contentTypes.map((type) => {
+               if (type === "text") return { "images.0": { $exists: false }, poll: { $exists: false } };
+               if (type === "images") return { "images.0": { $exists: true } };
+               if (type === "polls") return { poll: { $exists: true } };
+            });
+         }
+
+         // Topic filtering
+         if (prefs.topicsOfInterest && prefs.topicsOfInterest.length > 0) {
+            query.hashtags = { $in: prefs.topicsOfInterest };
+         }
+         if (prefs.excludedTopics && prefs.excludedTopics.length > 0) {
+            query.hashtags = { ...query.hashtags, $nin: prefs.excludedTopics };
+         }
+
+         // Visibility and following filter
+         const following = req.user.following;
+
+         const visibilityQuery = prefs.prioritizeFollowing
+            ? {
+                 $or: [
+                    {
+                       user: { $in: following },
+                       $or: [{ visibility: "public" }, { visibility: "friends" }],
+                       isPrivate: false,
+                    },
+                    { visibility: "public", isPrivate: false },
+                    { user: req.user.id }, // Include user's own posts
+                 ],
+              }
+            : {
+                 $or: [
+                    { visibility: "public", isPrivate: false },
+                    { user: req.user.id }, // Include user's own posts
+                 ],
+              };
+
+         query = { ...query, ...visibilityQuery };
+
+         // Sorting
+         switch (prefs.sortBy) {
+            case "popular":
+               sort = { likesCount: -1, commentsCount: -1, createdAt: -1 };
+               break;
+            case "relevant":
+               // Combine recency and popularity
+               sort = {
+                  score: {
+                     $add: [
+                        { $size: "$likes" },
+                        { $size: "$comments" },
+                        { $divide: [{ $subtract: ["$createdAt", new Date(0)] }, 86400000] },
+                     ],
+                  },
+               };
+               break;
+            case "recent":
+            default:
+               sort = { createdAt: -1 };
+         }
+
+         const posts = await Post.find(query)
+            .sort(sort)
             .populate("user", "name profileImage username")
             .populate("comments.user", "name profileImage username");
 
          return res.status(200).json({
             success: true,
-            data: posts, // Standardized format: only use data field
+            data: posts,
          });
       }
    } catch (err) {
@@ -157,6 +226,23 @@ exports.getPosts = async (req, res, next) => {
       next(err);
    }
 };
+
+// Helper function to get time filter
+function getTimeFilter(timeWindow) {
+   if (!timeWindow || timeWindow === "all") return null;
+
+   const now = new Date();
+   switch (timeWindow) {
+      case "day":
+         return { $gte: new Date(now - 24 * 60 * 60 * 1000) };
+      case "week":
+         return { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) };
+      case "month":
+         return { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) };
+      default:
+         return null;
+   }
+}
 
 // @desc    Get single post
 // @route   GET /api/posts/:id
@@ -444,6 +530,111 @@ exports.reportPost = async (req, res, next) => {
          message: "Post reported successfully",
       });
    } catch (err) {
+      next(err);
+   }
+};
+
+// @desc    Get filtered following posts
+// @route   GET /api/posts/following/:userId
+// @access  Private
+exports.getFilteredFollowingPosts = async (req, res, next) => {
+   try {
+      const { userId } = req.params;
+
+      // Ensure user exists
+      const targetUser = await User.findById(userId);
+      if (!targetUser) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Get posts from users that the target user follows
+      // Exclude posts from the requesting user
+      const query = {
+         user: {
+            $in: targetUser.following,
+            $ne: req.user.id, // Exclude requesting user's posts
+         },
+         $or: [
+            { visibility: "public" },
+            {
+               visibility: "friends",
+               user: { $in: targetUser.followers }, // Only show friends posts if they follow back
+            },
+         ],
+         isPrivate: false,
+      };
+
+      const posts = await Post.find(query)
+         .sort("-createdAt")
+         .populate("user", "name username profileImage")
+         .populate("comments.user", "name username profileImage")
+         .populate("likes", "name username profileImage");
+
+      res.status(200).json({
+         success: true,
+         data: posts,
+      });
+   } catch (err) {
+      console.error("Error in getFilteredFollowingPosts:", err);
+      next(err);
+   }
+};
+
+// @desc    Vote on a poll option
+// @route   POST /api/posts/:id/vote
+// @access  Private
+exports.voteOnPoll = async (req, res, next) => {
+   try {
+      const { optionIndex } = req.body;
+      const post = await Post.findById(req.params.id);
+
+      if (!post) {
+         return res.status(404).json({
+            success: false,
+            error: "Post not found",
+         });
+      }
+
+      if (!post.poll) {
+         return res.status(400).json({
+            success: false,
+            error: "This post does not have a poll",
+         });
+      }
+
+      if (post.poll.expiresAt && new Date(post.poll.expiresAt) < new Date()) {
+         return res.status(400).json({
+            success: false,
+            error: "This poll has ended",
+         });
+      }
+
+      // Remove user's vote from all options
+      post.poll.options.forEach((option) => {
+         const voteIndex = option.votes.indexOf(req.user.id);
+         if (voteIndex > -1) {
+            option.votes.splice(voteIndex, 1);
+         }
+      });
+
+      // Add vote to selected option
+      post.poll.options[optionIndex].votes.push(req.user.id);
+      await post.save();
+
+      // Populate user info for the updated post
+      const populatedPost = await Post.findById(post._id)
+         .populate("user", "name username profileImage")
+         .populate("taggedUsers", "name username profileImage");
+
+      res.status(200).json({
+         success: true,
+         data: populatedPost,
+      });
+   } catch (err) {
+      console.error("Error voting on poll:", err);
       next(err);
    }
 };

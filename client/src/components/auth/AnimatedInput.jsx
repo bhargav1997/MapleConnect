@@ -14,6 +14,32 @@ const AnimatedInput = ({ id, name, type = "text", value, onChange, label, requir
       setIsPasswordVisible(!isPasswordVisible);
    };
 
+   // Set default autocomplete value based on input type and name
+   const getAutoComplete = () => {
+      if (autoComplete) return autoComplete;
+
+      if (type === "password") {
+         if (name === "confirmPassword") return "new-password";
+         if (name === "newPassword") return "new-password";
+         return "current-password";
+      }
+
+      switch (name) {
+         case "email":
+            return "email";
+         case "username":
+            return "username";
+         case "name":
+            return "name";
+         default:
+            return "off";
+      }
+   };
+
+   const handleAddImage = (url) => {
+      // Implementation of handleAddImage
+   };
+
    return (
       <div className='relative mb-4'>
          <div
@@ -32,7 +58,7 @@ const AnimatedInput = ({ id, name, type = "text", value, onChange, label, requir
                value={value}
                onChange={onChange}
                required={required}
-               autoComplete={autoComplete}
+               autoComplete={getAutoComplete()}
                className={`
                 block w-full ${icon ? "pl-10" : "pl-4"} pr-${type === "password" ? "10" : "4"} pt-6 pb-2
                 rounded-lg text-gray-900 bg-transparent

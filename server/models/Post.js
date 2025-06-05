@@ -13,9 +13,16 @@ const PostSchema = new mongoose.Schema(
          trim: true,
          maxlength: [5000, "Post cannot be more than 5000 characters"],
       },
-      images: [
+      imageUrls: [
          {
-            type: String, // Cloudinary URL
+            type: String,
+            validate: {
+               validator: function (v) {
+                  // Basic URL validation
+                  return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(v);
+               },
+               message: (props) => `${props.value} is not a valid URL!`,
+            },
          },
       ],
       location: {
@@ -144,5 +151,10 @@ PostSchema.pre("remove", async function (next) {
    await this.model("Comment").deleteMany({ post: this._id });
    next();
 });
+
+// Add indexes
+PostSchema.index({ user: 1, createdAt: -1 });
+PostSchema.index({ visibility: 1 });
+PostSchema.index({ content: "text" });
 
 module.exports = mongoose.model("Post", PostSchema);

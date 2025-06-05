@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getPosts } from "../services/postService";
 import CreatePostModal from "../components/CreatePostModal";
+import FeedPreferences from "../components/FeedPreferences";
 import PostCard from "../components/PostCard";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -21,6 +22,7 @@ const Home = () => {
    const [isPostModalOpen, setIsPostModalOpen] = useState(false);
    const [trendingTopics] = useState([]);
    const [upcomingEvents] = useState([]);
+   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
 
    const postListRef = useRef(null);
 
@@ -28,15 +30,21 @@ const Home = () => {
       try {
          setLoading(true);
          setError("");
-         console.log("Fetching posts for tab:", activeTab);
-         const response = await getPosts(activeTab);
-         console.log("Posts response:", response);
 
-         // All responses now have the same format: response.data.data
-         const postsData = response.data.data;
+         let response;
+         let postsData;
+
+         if (activeTab === "following") {
+            // For following tab, get posts from all users that the current user follows
+            response = await getPosts("following");
+            postsData = response.data.data;
+         } else {
+            response = await getPosts(activeTab);
+            postsData = response.data.data;
+         }
+
          setPosts(postsData || []);
 
-         console.log("postsData", postsData);
          // Calculate my posts
          const myPosts = postsData?.filter((post) => post.user._id === user.id) || [];
          setMyPostsLength(myPosts.length);
@@ -45,7 +53,6 @@ const Home = () => {
          setError(err.message || "Failed to load posts. Please try again later.");
       } finally {
          setLoading(false);
-         // Auto-hide welcome banner after first post load attempt
          setTimeout(() => {
             setShowWelcome(false);
          }, 5000);
@@ -157,7 +164,6 @@ const Home = () => {
                         </svg>
                      </div>
                   </div>
-                  {console.log("user", user)}
                   <div className='px-6 pt-0 pb-6 relative'>
                      <div className='flex flex-col items-center'>
                         <div className='w-24 h-24 rounded-full bg-white mb-3 overflow-hidden border-4 border-white shadow-md -mt-12'>
@@ -295,6 +301,19 @@ const Home = () => {
                         }`}>
                         Following
                      </button>
+                     <button
+                        onClick={() => setIsPreferencesModalOpen(true)}
+                        className='px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center'>
+                        <svg className='w-5 h-5 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                           <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'
+                           />
+                        </svg>
+                        Customize
+                     </button>
                   </div>
                </div>
 
@@ -353,8 +372,11 @@ const Home = () => {
                         </div>
                      </div>
                   ) : (
-                     // Posts list
-                     posts.map((post) => <PostCard key={post._id} post={post} onUpdate={fetchPosts} />)
+                     posts.map((post) => (
+                        <div key={post._id}>
+                           <PostCard post={post} onUpdate={fetchPosts} />
+                        </div>
+                     ))
                   )}
                </div>
             </div>
@@ -453,6 +475,9 @@ const Home = () => {
 
          {/* Create Post Modal */}
          <CreatePostModal isOpen={isPostModalOpen} onClose={() => setIsPostModalOpen(false)} onPostCreated={handlePostCreated} />
+
+         {/* FeedPreferences modal */}
+         <FeedPreferences isOpen={isPreferencesModalOpen} onClose={() => setIsPreferencesModalOpen(false)} onUpdate={fetchPosts} />
       </div>
    );
 };

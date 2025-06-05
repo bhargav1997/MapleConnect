@@ -40,3 +40,19 @@
       @apply block text-sm font-medium text-charcoal-gray mb-1;
    }
 }
+
+/* Ensure modals appear above everything else */
+.z-50 {
+   z-index: 50;
+}
+
+/* For the privacy dropdown in the modal */
+.z-10 {
+   z-index: 10;
+}
+
+/* Prevent body scrolling when modal is open */
+body.modal-open {
+   overflow: hidden;
+}
+   

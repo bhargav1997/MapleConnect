@@ -5,7 +5,6 @@ import { getUserById } from "../../services/userService";
 import { useSocket } from "../../context/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import UserAvatar from "../common/UserAvatar";
-import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 const ChatWindow = () => {
@@ -220,11 +219,11 @@ const ChatWindow = () => {
    }
 
    return (
-      <div className='flex flex-col h-full min-h-0 bg-white rounded-xl shadow-md overflow-hidden'>
-         {/* Header */}
-         <div className='flex items-center gap-3 px-6 py-3 border-b bg-white flex-shrink-0 shadow-sm'>
+      <div className='flex flex-col h-full'>
+         {/* Header - Fixed at top */}
+         <div className='sticky top-0 flex items-center gap-3 px-6 py-3 border-b bg-white shadow-sm z-10'>
             <button
-               className='lg:hidden p-2 rounded-full hover:bg-gray-100 transition-colors mr-2'
+               className='md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors mr-2'
                onClick={() => navigate(-1)}
                aria-label='Back'>
                <svg className='w-6 h-6 text-gray-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
@@ -248,98 +247,99 @@ const ChatWindow = () => {
                </svg>
             </button>
          </div>
-         {/* Messages */}
-         <div className='flex-1 min-h-0 overflow-y-auto px-4 py-6 bg-gray-50 space-y-4'>
-            <AnimatePresence>
-               {messages.map((message) => (
-                  <motion.div
-                     key={message._id}
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, scale: 0.95 }}
-                     className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"}`}>
-                     <div
-                        className={`flex items-end space-x-2 max-w-[70%] ${
-                           isMyMessage(message) ? "flex-row-reverse space-x-reverse" : ""
-                        }`}>
-                        <UserAvatar user={isMyMessage(message) ? user : chatUser || { _id: userId }} size='sm' />
-                        <div className='relative group'>
-                           <div
-                              className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm break-words ${
-                                 isMyMessage(message)
-                                    ? "bg-maple-red text-white rounded-br-none"
-                                    : "bg-gray-200 text-charcoal-gray border border-gray-100 rounded-bl-none"
-                              }`}>
-                              <p>{message.content}</p>
-                           </div>
+
+         {/* Messages Container - Scrollable area */}
+         <div className='flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0'>
+            {messages.map((message) => (
+               <div key={message._id} className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"} animate-fade-in`}>
+                  <div
+                     className={`flex items-start space-x-2 max-w-[75%] ${isMyMessage(message) ? "flex-row-reverse space-x-reverse" : ""}`}>
+                     {!isMyMessage(message) && <UserAvatar user={message.sender} size='sm' />}
+                     <div className='flex flex-col'>
+                        <div
+                           className={`relative group rounded-2xl px-4 py-2 ${
+                              isMyMessage(message) ? "bg-maple-red text-white rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"
+                           }`}>
+                           <p className='text-sm whitespace-pre-wrap break-words'>{message.content}</p>
                            {isMyMessage(message) && (
                               <button
                                  onClick={() => handleDeleteMessage(message._id)}
-                                 className='absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50'>
-                                 <svg
-                                    className='w-4 h-4 text-gray-500 hover:text-red-500'
-                                    fill='none'
-                                    viewBox='0 0 24 24'
-                                    stroke='currentColor'>
-                                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                                 className='absolute -right-8 top-1/2 -translate-y-1/2 p-1 rounded-full bg-white shadow-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50'>
+                                 <svg className='w-4 h-4 text-red-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                    <path
+                                       strokeLinecap='round'
+                                       strokeLinejoin='round'
+                                       strokeWidth={2}
+                                       d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                    />
                                  </svg>
                               </button>
                            )}
-                           <div className='text-xs text-gray-400 mt-1'>
-                              {message.readBy?.includes(userId) && isMyMessage(message) && (
-                                 <span className='flex items-center gap-1'>
-                                    <svg className='w-3 h-3' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                                       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
-                                    </svg>
-                                    Read
-                                 </span>
-                              )}
-                           </div>
                         </div>
+                        <span className='text-xs text-gray-500 mt-1 self-end'>
+                           {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                           {message.readBy?.includes(userId) && (
+                              <span className='ml-1 text-maple-red'>
+                                 <svg className='w-3 h-3 inline' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+                                 </svg>
+                              </span>
+                           )}
+                        </span>
                      </div>
-                  </motion.div>
-               ))}
-            </AnimatePresence>
-            {isTyping && typingUser && (
-               <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className='flex items-center space-x-2 text-sm text-gray-500 bg-white/50 rounded-full px-4 py-2 w-fit'>
-                  <UserAvatar user={typingUser} size='xs' />
-                  <span>{typingUser.name} is typing...</span>
-                  <div className='flex space-x-1'>
-                     <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "0ms" }}></div>
-                     <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "150ms" }}></div>
-                     <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "300ms" }}></div>
                   </div>
-               </motion.div>
+               </div>
+            ))}
+            {isTyping && typingUser && (
+               <div className='flex items-center space-x-2'>
+                  <UserAvatar user={typingUser} size='sm' />
+                  <div className='bg-gray-100 rounded-full px-4 py-2'>
+                     <div className='flex space-x-1'>
+                        <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "0ms" }} />
+                        <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "150ms" }} />
+                        <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "300ms" }} />
+                     </div>
+                  </div>
+               </div>
             )}
             <div ref={messagesEndRef} />
          </div>
-         {/* Input */}
-         <form onSubmit={handleSendMessage} className='p-4 border-t bg-white flex-shrink-0'>
-            <div className='flex items-center space-x-3'>
-               <input
-                  type='text'
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleTyping}
-                  placeholder='Type a message...'
-                  className='flex-1 rounded-full border-gray-200 focus:ring-maple-red focus:border-maple-red shadow-sm px-4 py-2.5 text-base bg-gray-50'
-               />
-               <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+
+         {/* Message Input - Fixed at bottom */}
+         <div className='sticky bottom-0 border-t bg-white px-6 py-4 mt-auto'>
+            <form onSubmit={handleSendMessage} className='flex items-center space-x-4'>
+               <div className='flex-1 relative'>
+                  <input
+                     type='text'
+                     value={newMessage}
+                     onChange={(e) => setNewMessage(e.target.value)}
+                     onKeyDown={handleTyping}
+                     placeholder='Type a message...'
+                     className='w-full px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-maple-red/50 focus:border-maple-red pr-12'
+                  />
+                  <button type='button' className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'>
+                     <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                        <path
+                           strokeLinecap='round'
+                           strokeLinejoin='round'
+                           strokeWidth={2}
+                           d='M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                        />
+                     </svg>
+                  </button>
+               </div>
+               <button
                   type='submit'
                   disabled={!newMessage.trim()}
-                  className='p-3 rounded-full bg-maple-red text-white hover:bg-maple-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center'>
-                  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  className={`p-2 rounded-full ${
+                     newMessage.trim() ? "bg-maple-red text-white hover:bg-maple-red-dark" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  } transition-colors`}>
+                  <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 19l9 2-9-18-9 18 9-2zm0 0v-8' />
                   </svg>
-               </motion.button>
-            </div>
-         </form>
+               </button>
+            </form>
+         </div>
       </div>
    );
 };
