@@ -20,6 +20,7 @@ const messageRoutes = require("./routes/messages");
 const notificationRoutes = require("./routes/notifications");
 const chatRoutes = require("./routes/chats");
 const adminRoutes = require("./routes/admin");
+const thoughtRoutes = require("./routes/thoughts");
 
 // Load environment variables
 dotenv.config();
@@ -218,6 +219,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/thoughts", thoughtRoutes);
 
 // Mount nested routes
 app.use("/api/groups/:groupId/events", eventRoutes);

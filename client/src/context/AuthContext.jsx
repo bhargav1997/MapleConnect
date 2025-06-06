@@ -11,14 +11,25 @@ export const AuthProvider = ({ children }) => {
    const dispatch = useDispatch();
    const navigate = useNavigate();
 
+   // Normalize user data to ensure consistent ID format
+   const normalizeUser = (userData) => {
+      if (!userData) return null;
+      return {
+         ...userData,
+         _id: userData._id || userData.id, // Ensure we always have _id
+         id: userData._id || userData.id, // Ensure we always have id
+      };
+   };
+
    // Register user
    const register = async (userData) => {
       try {
          dispatch(registerStart());
          const data = await authService.register(userData);
-         dispatch(registerSuccess(data.user));
+         const normalizedUser = normalizeUser(data.user);
+         dispatch(registerSuccess(normalizedUser));
          navigate("/");
-         return data;
+         return { ...data, user: normalizedUser };
       } catch (error) {
          const message = error.response && error.response.data.error ? error.response.data.error : "Registration failed";
          dispatch(registerFailure(message));
@@ -29,12 +40,12 @@ export const AuthProvider = ({ children }) => {
    // Login user
    const loginUser = async (userData) => {
       try {
-         console.log("userData", userData);
          dispatch(loginStart());
          const data = await authService.login(userData);
-         dispatch(loginSuccess(data.user));
+         const normalizedUser = normalizeUser(data.user);
+         dispatch(loginSuccess(normalizedUser));
          navigate("/");
-         return data;
+         return { ...data, user: normalizedUser };
       } catch (error) {
          const message = error.response && error.response.data.error ? error.response.data.error : "Login failed";
          dispatch(loginFailure(message));
@@ -45,24 +56,21 @@ export const AuthProvider = ({ children }) => {
    // Complete login after OTP verification
    const completeLogin = async (data) => {
       try {
-         console.log("Completing login with data:", data);
-
          if (!data || !data.user || !data.token) {
-            console.error("Invalid login data received:", data);
             throw new Error("Invalid login data received");
          }
 
+         const normalizedUser = normalizeUser(data.user);
+
          // Save to localStorage first
-         localStorage.setItem("user", JSON.stringify(data.user));
+         localStorage.setItem("user", JSON.stringify(normalizedUser));
          localStorage.setItem("token", data.token);
 
          // Then update Redux state
-         dispatch(loginSuccess(data.user));
+         dispatch(loginSuccess(normalizedUser));
 
-         console.log("Login completed successfully");
-         return data;
+         return { ...data, user: normalizedUser };
       } catch (error) {
-         console.error("Error completing login:", error);
          const message = error.response?.data?.error || error.message || "Login failed";
          dispatch(loginFailure(message));
          throw new Error(message);
@@ -77,7 +85,7 @@ export const AuthProvider = ({ children }) => {
    };
 
    const value = {
-      user,
+      user: normalizeUser(user), // Ensure we always return normalized user data
       isAuthenticated,
       isLoading,
       error,
