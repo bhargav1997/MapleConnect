@@ -1,15 +1,11 @@
    import { useState, useRef, useEffect } from "react";
    import { useAuth } from "../context/AuthContext";
-   import { createPost } from "../services/postService";
    import { motion, AnimatePresence } from "framer-motion";
-   import { searchUsers } from "../services/userService";
    import CreatePostForm from "./CreatePostForm";
-   import PrivacySelector from "./PrivacySelector";
 
    const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       const { user } = useAuth();
       const [visibility, setVisibility] = useState("public");
-      const [showPrivacySelector, setShowPrivacySelector] = useState(false);
 
       // If the modal is clicked outside, close it
       const modalRef = useRef(null);
