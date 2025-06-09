@@ -72,18 +72,32 @@ const Login = () => {
       }
 
       try {
+         // First attempt regular login
          if (!isOtpSent) {
-            // Generate OTP
-            const response = await authService.generateLoginOTP(formData.email);
+            const response = await authService.generateLoginOTP(formData.email, formData.rememberMe);
+
             if (response.success) {
+               if (response.skipOTP) {
+                  // OTP verification is still valid, proceed with direct login
+                  await login({
+                     email: formData.email,
+                     password: formData.password,
+                  });
+                  navigate("/home");
+                  return;
+               }
+
+               // Need OTP verification
                setTempToken(response.tempToken);
                setIsOtpSent(true);
                toast.success("OTP sent successfully!");
-               // Navigate to OTP verification page
+
+               // Navigate to OTP verification with all necessary state
                navigate("/otp-verify", {
                   state: {
                      email: formData.email,
                      tempToken: response.tempToken,
+                     rememberMe: formData.rememberMe,
                   },
                });
             }

@@ -22,16 +22,18 @@ export const register = async (userData) => {
 };
 
 // Store OTP verification status
-const storeOTPVerification = (email) => {
-   const expiryDate = new Date();
-   expiryDate.setDate(expiryDate.getDate() + 3); // 3 days from now
-   localStorage.setItem(
-      "otpVerified",
-      JSON.stringify({
-         email,
-         expiryDate: expiryDate.toISOString(),
-      }),
-   );
+const storeOTPVerification = (email, remember = false) => {
+   if (remember) {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 3); // 3 days from now
+      localStorage.setItem(
+         "otpVerified",
+         JSON.stringify({
+            email,
+            expiryDate: expiryDate.toISOString(),
+         }),
+      );
+   }
 };
 
 // Check if OTP verification is still valid
@@ -44,16 +46,20 @@ const isOTPVerificationValid = (email) => {
    const expiry = new Date(expiryDate);
 
    return email === verifiedEmail && now < expiry;
-};
-
-// Clear OTP verification
+}; // Clear OTP verification
 const clearOTPVerification = () => {
    localStorage.removeItem("otpVerified");
+   localStorage.removeItem("otpRememberMe");
 };
 
 // Login with email and password
 export const login = async (email, password) => {
    try {
+      // Check if we have a stored OTP verification for this email
+      if (isOTPVerificationValid(email)) {
+         console.log("Using stored OTP verification for login");
+      }
+
       const response = await api.post("/auth/login", {
          email,
          password,
@@ -73,15 +79,16 @@ export const login = async (email, password) => {
 };
 
 // Generate OTP for login
-export const generateLoginOTP = async (email) => {
+export const generateLoginOTP = async (email, remember = false) => {
    try {
       // Check if OTP verification is still valid
       if (isOTPVerificationValid(email)) {
+         // Skip OTP only if it's a valid stored verification
          return { success: true, skipOTP: true };
       }
 
-      const response = await api.post("/auth/generate-login-otp", { email });
-      return response.data;
+      const response = await api.post("/auth/generate-login-otp", { email, remember });
+      return { ...response.data, skipOTP: false };
    } catch (error) {
       console.error("Generate OTP error:", error);
       throw error;
@@ -89,7 +96,7 @@ export const generateLoginOTP = async (email) => {
 };
 
 // Verify OTP
-export const verifyLoginOTP = async (email, otp, tempToken) => {
+export const verifyLoginOTP = async (email, otp, tempToken, remember = false) => {
    try {
       const response = await api.post("/auth/verify-login-otp", {
          email,
@@ -101,7 +108,9 @@ export const verifyLoginOTP = async (email, otp, tempToken) => {
          // Store user data and token after successful verification
          localStorage.setItem("user", JSON.stringify(response.data.user));
          localStorage.setItem("token", response.data.token);
-         storeOTPVerification(email);
+
+         // Store OTP verification status if remember is true
+         storeOTPVerification(email, remember);
       }
 
       return response.data;
@@ -111,15 +120,11 @@ export const verifyLoginOTP = async (email, otp, tempToken) => {
    }
 };
 
-// Resend OTP
-export const resendLoginOTP = async (email, tempToken) => {
-   const response = await api.post("/auth/resend-login-otp", { email, tempToken });
-   return response.data;
-};
-
 // Logout
 export const logout = () => {
    clearOTPVerification();
+   localStorage.removeItem("user");
+   localStorage.removeItem("token");
 };
 
 // Get current user

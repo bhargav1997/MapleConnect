@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../components/auth/AuthLayout";
-import api from "../services/api";
+import * as authService from "../services/authService";
 
 const LoginOTPVerification = () => {
    const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -16,7 +16,7 @@ const LoginOTPVerification = () => {
    const location = useLocation();
    const { completeLogin } = useAuth();
 
-   const { email, tempToken } = location.state || {};
+   const { email, tempToken, rememberMe } = location.state || {};
 
    useEffect(() => {
       if (!email || !tempToken) {
@@ -77,21 +77,16 @@ const LoginOTPVerification = () => {
 
       try {
          console.log("Verifying OTP for:", email);
-         const response = await api.post("/auth/verify-login-otp", {
-            email,
-            otp: otpValue,
-            tempToken,
-         });
+         // Use authService for verification
+         const response = await authService.verifyLoginOTP(email, otpValue, tempToken, rememberMe);
 
-         console.log("OTP verification response:", response.data);
-
-         if (response.data && response.data.success) {
+         if (response.success) {
             console.log("OTP verification successful, completing login");
-            await completeLogin(response.data);
+            await completeLogin(response);
             console.log("Login completed, navigating to dashboard");
             navigate("/home", { replace: true });
          } else {
-            console.error("Invalid response from OTP verification:", response.data);
+            console.error("Invalid response from OTP verification:", response);
             setError("Invalid OTP. Please try again.");
          }
       } catch (err) {
@@ -107,20 +102,24 @@ const LoginOTPVerification = () => {
       setError("");
 
       try {
-         await api.post("/auth/resend-login-otp", { email, tempToken });
-         setCountdown(60);
-         setResendDisabled(true);
+         const response = await authService.resendLoginOTP(email, tempToken);
+         if (response.success) {
+            setCountdown(60);
+            setResendDisabled(true);
 
-         const timer = setInterval(() => {
-            setCountdown((prev) => {
-               if (prev <= 1) {
-                  clearInterval(timer);
-                  setResendDisabled(false);
-                  return 0;
-               }
-               return prev - 1;
-            });
-         }, 1000);
+            const timer = setInterval(() => {
+               setCountdown((prev) => {
+                  if (prev <= 1) {
+                     clearInterval(timer);
+                     setResendDisabled(false);
+                     return 0;
+                  }
+                  return prev - 1;
+               });
+            }, 1000);
+         } else {
+            setError("Failed to resend OTP. Please try again.");
+         }
       } catch (err) {
          setError(err.response?.data?.error || "Failed to resend OTP");
       } finally {
