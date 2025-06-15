@@ -35,7 +35,26 @@ exports.getConversations = async (req, res) => {
       })
          .sort({ createdAt: -1 })
          .populate("sender", "name username profileImage")
-         .populate("receiver", "name username profileImage");
+         .populate("receiver", "name username profileImage")
+         .populate({
+            path: "thoughtRef",
+            populate: [
+               {
+                  path: "user",
+                  select: "name username profileImage",
+               },
+               {
+                  path: "likes",
+               },
+               {
+                  path: "comments",
+                  populate: {
+                     path: "user",
+                     select: "name username profileImage",
+                  },
+               },
+            ],
+         });
 
       // Group messages by conversation and calculate unread counts
       const conversationsMap = new Map();
@@ -93,7 +112,26 @@ exports.getMessages = async (req, res) => {
       })
          .sort({ createdAt: 1 })
          .populate("sender", "name username profileImage")
-         .populate("receiver", "name username profileImage");
+         .populate("receiver", "name username profileImage")
+         .populate({
+            path: "thoughtRef",
+            populate: [
+               {
+                  path: "user",
+                  select: "name username profileImage",
+               },
+               {
+                  path: "likes",
+               },
+               {
+                  path: "comments",
+                  populate: {
+                     path: "user",
+                     select: "name username profileImage",
+                  },
+               },
+            ],
+         });
 
       // Mark messages as read
       const unreadMessages = messages.filter((message) => message.receiver._id.toString() === userId && !message.readBy.includes(userId));
@@ -127,8 +165,10 @@ exports.deleteMessage = async (req, res) => {
    try {
       const userId = req.user.id;
       const messageId = req.params.messageId;
+      console.log("--->", userId, messageId);
 
       const message = await Message.findById(messageId);
+      console.log("message", message);
       if (!message) {
          return res.status(404).json({
             success: false,
@@ -144,12 +184,28 @@ exports.deleteMessage = async (req, res) => {
          });
       }
 
-      // Add user to deletedFor array
-      message.deletedFor.push(userId);
-      await message.save();
+      // Actually delete the message
+      await Message.deleteOne({ _id: messageId });
+
+      // Emit socket event for real-time updates to both users
+      if (req.io) {
+         const receiverId = message.sender.toString() === userId ? message.receiver.toString() : message.sender.toString();
+         const eventData = {
+            messageId: message._id,
+            conversationId: receiverId,
+         };
+
+         // Emit to both sender and receiver to ensure both sides update
+         req.io.to(`user_${userId}`).emit("message_deleted", eventData);
+         req.io.to(`user_${receiverId}`).emit("message_deleted", eventData);
+      }
 
       res.json({
          success: true,
+         data: {
+            messageId: message._id,
+            receiverId: message.sender.toString() === userId ? message.receiver.toString() : message.sender.toString(),
+         },
          message: "Message deleted successfully",
       });
    } catch (error) {

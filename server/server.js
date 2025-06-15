@@ -79,7 +79,26 @@ io.on("connection", (socket) => {
          // Populate sender and receiver
          const populatedMessage = await Message.findById(newMessage._id)
             .populate("sender", "name profileImage")
-            .populate("receiver", "name profileImage");
+            .populate("receiver", "name profileImage")
+            .populate({
+               path: "thoughtRef",
+               populate: [
+                  {
+                     path: "user",
+                     select: "name username profileImage",
+                  },
+                  {
+                     path: "likes",
+                  },
+                  {
+                     path: "comments",
+                     populate: {
+                        path: "user",
+                        select: "name username profileImage",
+                     },
+                  },
+               ],
+            });
 
          // Get updated unread count for receiver
          const unreadCount = await Message.countDocuments({

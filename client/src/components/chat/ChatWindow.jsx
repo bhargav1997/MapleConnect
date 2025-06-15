@@ -6,8 +6,11 @@ import { useSocket } from "../../context/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import UserAvatar from "../common/UserAvatar";
 import { toast } from "react-hot-toast";
+import ThoughtsContainer from "../thoughts/ThoughtsContainer";
 
 const ChatWindow = () => {
+   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+   const [viewingThought, setViewingThought] = useState(null);
    const { userId } = useParams();
    const [messages, setMessages] = useState([]);
    const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ const ChatWindow = () => {
 
    const fetchMessages = async () => {
       try {
+         console.log("Fetching messages for userId:", userId);
          setLoading(true);
          setError("");
          const response = await getMessages(userId);
@@ -106,8 +110,18 @@ const ChatWindow = () => {
             );
          });
 
-         socket.on("message deleted", (data) => {
-            setMessages((prev) => prev.filter((msg) => msg._id !== data.messageId));
+         socket.on("message_deleted", (data) => {
+            console.log("Received message_deleted event:", data);
+            // Update messages when either the current user or the chat partner is involved
+            const isRelevantConversation = data.conversationId === userId || data.conversationId === user._id;
+
+            if (isRelevantConversation) {
+               setMessages((prev) => {
+                  const updatedMessages = prev.filter((msg) => msg._id !== data.messageId);
+                  console.log("Updated messages after deletion:", updatedMessages);
+                  return updatedMessages;
+               });
+            }
          });
       }
 
@@ -117,7 +131,7 @@ const ChatWindow = () => {
             socket.off("new message");
             socket.off("typing");
             socket.off("messages read");
-            socket.off("message deleted");
+            socket.off("message_deleted"); // Fix: Correct event name
          }
          if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
@@ -167,13 +181,36 @@ const ChatWindow = () => {
    };
 
    const handleDeleteMessage = async (messageId) => {
+      if (!window.confirm("Are you sure you want to delete this message?")) {
+         return;
+      }
+
       try {
-         await deleteMessage(messageId);
+         const messageToDelete = messages.find((msg) => msg._id === messageId);
+         if (!messageToDelete) {
+            toast.error("Message not found");
+            return;
+         }
+
+         // Update local state immediately for better UX
          setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
-         toast.success("Message deleted");
+
+         // Make API call to delete the message
+         await deleteMessage(messageId);
+
+         // No need to emit socket event here as the server will handle it
+         toast.success("Message deleted successfully");
       } catch (err) {
+         // Revert the local state change if the API call fails
+         setMessages((prev) => {
+            const deletedMessage = messages.find((msg) => msg._id === messageId);
+            if (deletedMessage) {
+               return [...prev, deletedMessage].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            }
+            return prev;
+         });
          console.error("Error deleting message:", err);
-         toast.error(err.message || "Failed to delete message");
+         toast.error(err.response?.data?.error || "Failed to delete message");
       }
    };
 
@@ -184,6 +221,75 @@ const ChatWindow = () => {
          return message.sender._id === user._id || message.sender._id === user.id;
       }
       return message.sender === user._id || message.sender === user.id;
+   };
+
+   const renderMessageContent = (message) => {
+      try {
+         if (message.type === "story" && message.thoughtRef && typeof message.thoughtRef === "object") {
+            if (!message.thoughtRef._id || !message.thoughtRef.content) {
+               return <div className='text-sm text-gray-500 italic'>This story is no longer available</div>;
+            }
+            return (
+               <div
+                  onClick={() => {
+                     setViewingThought(message.thoughtRef);
+                     setIsStoryViewerOpen(true);
+                  }}
+                  className='shared-story-preview p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors group max-w-sm'>
+                  {/* Story Header */}
+                  <div className='flex items-center justify-between mb-2'>
+                     <div className='flex items-center'>
+                        <div className='w-8 h-8 rounded-full overflow-hidden border-2 border-maple-red'>
+                           <img
+                              src={message.thoughtRef.user?.profileImage || "/default-avatar.png"}
+                              alt={message.thoughtRef.user?.name}
+                              className='w-full h-full object-cover'
+                           />
+                        </div>
+                        <div className='ml-3'>
+                           <p className='text-sm font-semibold text-gray-900'>{message.thoughtRef.user?.name}</p>
+                           <p className='text-xs text-gray-500'>
+                              {new Date(message.thoughtRef.createdAt).toLocaleDateString([], {
+                                 month: "short",
+                                 day: "numeric",
+                                 hour: "2-digit",
+                                 minute: "2-digit",
+                              })}
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Story Content */}
+                  <div className='mb-3'>
+                     <p className='text-gray-800 whitespace-pre-wrap break-words'>{message.thoughtRef.content}</p>
+                  </div>
+
+                  {/* Story Footer - Engagement */}
+                  <div className='flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100'>
+                     <div className='flex items-center space-x-4'>
+                        <div className='flex items-center'>
+                           <span className='mr-1'>❤️</span>
+                           <span>{message.thoughtRef.likes?.length || 0}</span>
+                        </div>
+                        <div className='flex items-center'>
+                           <span className='mr-1'>💬</span>
+                           <span>{message.thoughtRef.comments?.length || 0}</span>
+                        </div>
+                     </div>
+                     <div className='flex items-center space-x-2'>
+                        <p className='text-xs text-gray-400'>Story preview</p>
+                        <span className='text-xs text-maple-red group-hover:translate-x-0.5 transition-transform'>Open →</span>
+                     </div>
+                  </div>
+               </div>
+            );
+         }
+         return <div className='text-sm whitespace-pre-wrap'>{message.content}</div>;
+      } catch (error) {
+         console.error("Error rendering message content:", error);
+         return <div className='text-sm text-red-500'>Error displaying message</div>;
+      }
    };
 
    // --- UI ---
@@ -250,46 +356,54 @@ const ChatWindow = () => {
 
          {/* Messages Container - Scrollable area */}
          <div className='flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0'>
-            {messages.map((message) => (
-               <div key={message._id} className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"} animate-fade-in`}>
-                  <div
-                     className={`flex items-start space-x-2 max-w-[75%] ${isMyMessage(message) ? "flex-row-reverse space-x-reverse" : ""}`}>
-                     {!isMyMessage(message) && <UserAvatar user={message.sender} size='sm' />}
-                     <div className='flex flex-col'>
-                        <div
-                           className={`relative group rounded-2xl px-4 py-2 ${
-                              isMyMessage(message) ? "bg-maple-red text-white rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"
-                           }`}>
-                           <p className='text-sm whitespace-pre-wrap break-words'>{message.content}</p>
-                           {isMyMessage(message) && (
-                              <button
-                                 onClick={() => handleDeleteMessage(message._id)}
-                                 className='absolute -right-8 top-1/2 -translate-y-1/2 p-1 rounded-full bg-white shadow-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50'>
-                                 <svg className='w-4 h-4 text-red-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                                    <path
-                                       strokeLinecap='round'
-                                       strokeLinejoin='round'
-                                       strokeWidth={2}
-                                       d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                                    />
-                                 </svg>
-                              </button>
-                           )}
+            {console.log("All messages:", messages)}
+            {messages.map((message) => {
+               console.log("Rendering message in ChatWindow:", message);
+               return (
+                  <div key={message._id} className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"} animate-fade-in`}>
+                     <div
+                        className={`flex items-start space-x-2 max-w-[75%] ${
+                           isMyMessage(message) ? "flex-row-reverse space-x-reverse" : ""
+                        }`}>
+                        {!isMyMessage(message) && <UserAvatar user={message.sender} size='sm' />}
+                        <div className='flex flex-col'>
+                           <div
+                              className={`relative group rounded-2xl px-4 py-2 ${
+                                 isMyMessage(message)
+                                    ? "bg-maple-red text-white rounded-tr-none"
+                                    : "bg-gray-100 text-gray-800 rounded-tl-none"
+                              }`}>
+                              {renderMessageContent(message)}
+                              {isMyMessage(message) && (
+                                 <button
+                                    onClick={() => handleDeleteMessage(message._id)}
+                                    className='absolute -right-8 top-1/2 -translate-y-1/2 p-1 rounded-full bg-white shadow-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 z-10'>
+                                    <svg className='w-4 h-4 text-red-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                       <path
+                                          strokeLinecap='round'
+                                          strokeLinejoin='round'
+                                          strokeWidth={2}
+                                          d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                       />
+                                    </svg>
+                                 </button>
+                              )}
+                           </div>
+                           <span className='text-xs text-gray-500 mt-1 self-end'>
+                              {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {message.readBy?.includes(userId) && (
+                                 <span className='ml-1 text-maple-red'>
+                                    <svg className='w-3 h-3 inline' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+                                    </svg>
+                                 </span>
+                              )}
+                           </span>
                         </div>
-                        <span className='text-xs text-gray-500 mt-1 self-end'>
-                           {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                           {message.readBy?.includes(userId) && (
-                              <span className='ml-1 text-maple-red'>
-                                 <svg className='w-3 h-3 inline' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
-                                 </svg>
-                              </span>
-                           )}
-                        </span>
                      </div>
                   </div>
-               </div>
-            ))}
+               );
+            })}
             {isTyping && typingUser && (
                <div className='flex items-center space-x-2'>
                   <UserAvatar user={typingUser} size='sm' />
@@ -340,6 +454,36 @@ const ChatWindow = () => {
                </button>
             </form>
          </div>
+
+         {/* Story Viewer - Modal */}
+         {isStoryViewerOpen && viewingThought && (
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70'>
+               <div className='bg-white rounded-lg shadow-lg max-w-lg w-full mx-4'>
+                  {/* Header */}
+                  <div className='flex items-center justify-between p-4 border-b'>
+                     <h3 className='text-lg font-semibold text-charcoal-gray'>Story Details</h3>
+                     <button
+                        onClick={() => setIsStoryViewerOpen(false)}
+                        className='p-2 rounded-full hover:bg-gray-100 transition-colors'
+                        aria-label='Close'>
+                        <svg className='w-5 h-5 text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                        </svg>
+                     </button>
+                  </div>
+
+                  {/* Content - ThoughtsContainer */}
+                  <div className='p-4'>
+                     <ThoughtsContainer
+                        thoughts={[viewingThought]}
+                        onClose={() => setIsStoryViewerOpen(false)}
+                        isOpen={isStoryViewerOpen}
+                        singleView
+                     />
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
    );
 };

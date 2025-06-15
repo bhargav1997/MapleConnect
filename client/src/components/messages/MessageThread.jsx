@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { getConversation, sendMessage, markAsRead, deleteMessage } from "../../services/messageService";
@@ -19,6 +20,7 @@ import {
    deleteMessageFailure,
 } from "../../redux/slices/messageSlice";
 import { getUserInitials } from "../../utils/helpers";
+import ThoughtsContainer from "../thoughts/ThoughtsContainer";
 
 const MessageThread = ({ selectedUser, onBack }) => {
    const dispatch = useDispatch();
@@ -29,6 +31,8 @@ const MessageThread = ({ selectedUser, onBack }) => {
    const [attachments, setAttachments] = useState([]);
    const [attachmentPreviews, setAttachmentPreviews] = useState([]);
    const [isSending, setIsSending] = useState(false);
+   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+   const [viewingThought, setViewingThought] = useState(null);
    const messagesEndRef = useRef(null);
 
    useEffect(() => {
@@ -192,6 +196,77 @@ const MessageThread = ({ selectedUser, onBack }) => {
       }
    };
 
+   const renderMessageContent = (message) => {
+      console.log("Rendering message:", message);
+      try {
+         console.log("Message type:", message.type, "thoughtRef:", message.thoughtRef);
+         if (message.type === "story" && message.thoughtRef && typeof message.thoughtRef === "object") {
+            if (!message.thoughtRef._id || !message.thoughtRef.content) {
+               return <div className='text-sm text-gray-500 italic'>This story is no longer available</div>;
+            }
+            return (
+               <div
+                  onClick={() => {
+                     setViewingThought(message.thoughtRef);
+                     setIsStoryViewerOpen(true);
+                  }}
+                  className='shared-story-preview p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors group'>
+                  {/* Story Header */}
+                  <div className='flex items-center justify-between mb-3'>
+                     <div className='flex items-center'>
+                        <div className='w-10 h-10 rounded-full overflow-hidden border-2 border-maple-red'>
+                           <img
+                              src={message.thoughtRef.user?.profileImage || "/default-avatar.png"}
+                              alt={message.thoughtRef.user?.name}
+                              className='w-full h-full object-cover'
+                           />
+                        </div>
+                        <div className='ml-3'>
+                           <p className='text-sm font-semibold text-gray-900'>{message.thoughtRef.user?.name}</p>
+                           <p className='text-xs text-gray-500'>
+                              {new Date(message.thoughtRef.createdAt).toLocaleDateString([], {
+                                 month: "short",
+                                 day: "numeric",
+                                 hour: "2-digit",
+                                 minute: "2-digit",
+                              })}
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Story Content */}
+                  <div className='mb-3'>
+                     <p className='text-gray-800 whitespace-pre-wrap break-words'>{message.thoughtRef.content}</p>
+                  </div>
+
+                  {/* Story Footer - Engagement */}
+                  <div className='flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100'>
+                     <div className='flex items-center space-x-4'>
+                        <div className='flex items-center'>
+                           <span className='mr-1'>❤️</span>
+                           <span>{message.thoughtRef.likes?.length || 0}</span>
+                        </div>
+                        <div className='flex items-center'>
+                           <span className='mr-1'>💬</span>
+                           <span>{message.thoughtRef.comments?.length || 0}</span>
+                        </div>
+                     </div>
+                     <div className='flex items-center space-x-2'>
+                        <p className='text-xs text-gray-400'>Story preview</p>
+                        <span className='text-xs text-maple-red group-hover:translate-x-0.5 transition-transform'>Open →</span>
+                     </div>
+                  </div>
+               </div>
+            );
+         }
+         return <div className='text-sm whitespace-pre-wrap'>{message.content}</div>;
+      } catch (error) {
+         console.error("Error rendering message content:", error);
+         return <div className='text-sm text-red-500'>Error displaying message</div>;
+      }
+   };
+
    if (!selectedUser) {
       return (
          <div className='bg-white rounded-xl shadow-md overflow-hidden h-full flex items-center justify-center'>
@@ -226,6 +301,8 @@ const MessageThread = ({ selectedUser, onBack }) => {
          </div>
       );
    }
+
+   console.log("currentConversation", currentConversation);
 
    return (
       <div className='bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-full'>
@@ -346,7 +423,9 @@ const MessageThread = ({ selectedUser, onBack }) => {
                   </motion.div>
                ) : (
                   <div className='space-y-3'>
+                     {console.log("Messages to render:", currentConversation.messages)}
                      {currentConversation.messages.map((message, index) => {
+                        console.log("Processing message:", message);
                         const isSentByMe = message.sender._id === user.id;
                         const isFirstInGroup = index === 0 || currentConversation.messages[index - 1].sender._id !== message.sender._id;
                         const isLastInGroup =
@@ -375,7 +454,7 @@ const MessageThread = ({ selectedUser, onBack }) => {
                                        isSentByMe ? "bg-maple-red text-white" : "bg-white border border-gray-200 text-gray-800"
                                     } ${isFirstInGroup && isSentByMe ? "rounded-tr-none" : ""}
                                       ${isFirstInGroup && !isSentByMe ? "rounded-tl-none" : ""}`}>
-                                    <div className='text-sm whitespace-pre-wrap'>{message.content}</div>
+                                    {renderMessageContent(message)}
 
                                     {message.attachments && message.attachments.length > 0 && (
                                        <div className='mt-2 space-y-2'>
@@ -562,6 +641,16 @@ const MessageThread = ({ selectedUser, onBack }) => {
                </motion.button>
             </form>
          </div>
+
+         {/* Story Viewer */}
+         {isStoryViewerOpen && viewingThought && (
+            <ThoughtsContainer
+               isOpen={isStoryViewerOpen}
+               onClose={() => setIsStoryViewerOpen(false)}
+               thoughts={[viewingThought]}
+               initialStoryIndex={0}
+            />
+         )}
       </div>
    );
 };

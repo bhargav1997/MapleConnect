@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiPlus, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ThoughtStory from "./ThoughtStory";
 import CreateThought from "./CreateThought";
-import { getThoughts } from "../../services/thoughtService";
 import { useAuth } from "../../context/AuthContext";
 
 const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], initialStoryIndex = null, onStoryCreated }) => {
@@ -15,7 +13,7 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
    const [progress, setProgress] = useState(0);
    const progressInterval = useRef(null);
 
-   // Group thoughts by user
+   // Group thoughts by user and ensure they're in chronological order
    const groupedThoughts = useMemo(() => {
       const grouped = {};
 
@@ -26,7 +24,9 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
                thoughts: [],
             };
          }
+         // Add thought and sort by date to maintain chronological order
          grouped[thought.user._id].thoughts.push(thought);
+         grouped[thought.user._id].thoughts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       });
 
       return Object.values(grouped).sort((a, b) => {
@@ -38,20 +38,22 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
       });
    }, [initialThoughts, user]);
 
+   // In ThoughtsContainer.js
    useEffect(() => {
-      if (initialStoryIndex !== null) {
+      if (initialStoryIndex !== null && initialStoryIndex >= 0 && initialStoryIndex < initialThoughts.length) {
          // Find which user group contains the thought at initialStoryIndex
          let cumulativeIndex = 0;
          for (let i = 0; i < groupedThoughts.length; i++) {
-            if (cumulativeIndex + groupedThoughts[i].thoughts.length > initialStoryIndex) {
+            const userThoughts = groupedThoughts[i].thoughts;
+            if (cumulativeIndex + userThoughts.length > initialStoryIndex) {
                setActiveUserIndex(i);
                setActiveThoughtIndex(initialStoryIndex - cumulativeIndex);
                break;
             }
-            cumulativeIndex += groupedThoughts[i].thoughts.length;
+            cumulativeIndex += userThoughts.length;
          }
       }
-   }, [initialStoryIndex, groupedThoughts]);
+   }, [initialStoryIndex, groupedThoughts, initialThoughts.length]);
 
    useEffect(() => {
       if (!isOpen) return;
@@ -59,17 +61,23 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
       // Reset progress when story changes
       setProgress(0);
 
+      // Calculate timing based on story duration
+      const STORY_DURATION = 10000; // 10 seconds per story
+      const PROGRESS_INTERVAL = 50; // Update every 50ms
+      const PROGRESS_INCREMENT = (100 * PROGRESS_INTERVAL) / STORY_DURATION;
+
       // Start progress timer
       progressInterval.current = setInterval(() => {
          setProgress((prev) => {
-            if (prev >= 100) {
+            const nextProgress = prev + PROGRESS_INCREMENT;
+            if (nextProgress >= 100) {
                clearInterval(progressInterval.current);
                handleNext();
                return 0;
             }
-            return prev + 0.3; // Adjust this value to control speed
+            return nextProgress;
          });
-      }, 20);
+      }, PROGRESS_INTERVAL);
 
       return () => {
          if (progressInterval.current) {
@@ -82,26 +90,51 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
       clearInterval(progressInterval.current);
       setProgress(0);
 
+      // Get current user's stories
       const currentUserStories = groupedThoughts[activeUserIndex]?.thoughts || [];
-      if (activeThoughtIndex < currentUserStories.length - 1) {
-         setActiveThoughtIndex((prev) => prev + 1);
-      } else if (activeUserIndex < groupedThoughts.length - 1) {
-         setActiveUserIndex((prev) => prev + 1);
-         setActiveThoughtIndex(0);
-      } else {
-         onClose();
+
+      // Calculate next indexes based on current state
+      let nextThoughtIndex = activeThoughtIndex + 1;
+      let nextUserIndex = activeUserIndex;
+
+      // If we're at the end of current user's stories, move to next user
+      if (nextThoughtIndex >= currentUserStories.length) {
+         nextThoughtIndex = 0;
+         nextUserIndex = activeUserIndex + 1;
       }
+
+      // If we've reached the end of all stories, close the viewer
+      if (nextUserIndex >= groupedThoughts.length) {
+         onClose();
+         return;
+      }
+
+      // Update state
+      setActiveThoughtIndex(nextThoughtIndex);
+      setActiveUserIndex(nextUserIndex);
    };
 
    const handlePrevious = () => {
       clearInterval(progressInterval.current);
       setProgress(0);
 
-      if (activeThoughtIndex > 0) {
-         setActiveThoughtIndex((prev) => prev - 1);
-      } else if (activeUserIndex > 0) {
-         setActiveUserIndex((prev) => prev - 1);
-         setActiveThoughtIndex(groupedThoughts[activeUserIndex - 1].thoughts.length - 1);
+      // Calculate next indexes based on current state
+      let prevThoughtIndex = activeThoughtIndex - 1;
+      let prevUserIndex = activeUserIndex;
+
+      // If we're at the start of current user's stories, move to previous user
+      if (prevThoughtIndex < 0) {
+         prevUserIndex = activeUserIndex - 1;
+         // If there's a previous user, set to their last story
+         if (prevUserIndex >= 0) {
+            prevThoughtIndex = (groupedThoughts[prevUserIndex]?.thoughts?.length || 0) - 1;
+         }
+      }
+
+      // Only update if we have valid indexes
+      if (prevUserIndex >= 0 && prevThoughtIndex >= 0) {
+         setActiveThoughtIndex(prevThoughtIndex);
+         setActiveUserIndex(prevUserIndex);
       }
    };
 
@@ -134,20 +167,6 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className='relative w-full max-w-2xl mx-auto h-full flex flex-col'>
-                  {/* Navigation Buttons */}
-                  <button
-                     onClick={handlePrevious}
-                     className='absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-white/10 z-10'
-                     aria-label='Previous story'>
-                     <FiChevronLeft className='w-8 h-8' />
-                  </button>
-                  <button
-                     onClick={handleNext}
-                     className='absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-white/10 z-10'
-                     aria-label='Next story'>
-                     <FiChevronRight className='w-8 h-8' />
-                  </button>
-
                   {/* Story Display + Progress Bar */}
                   <div className='flex-1 flex flex-col items-center justify-center gap-4 px-4'>
                      {/* Progress bars */}
@@ -178,12 +197,13 @@ const ThoughtsContainer = ({ isOpen, onClose, thoughts: initialThoughts = [], in
                      <AnimatePresence mode='wait'>
                         {currentThought ? (
                            <ThoughtStory
-                              key={currentThought._id}
+                              key={`${currentThought._id}-${activeUserIndex}-${activeThoughtIndex}`}
                               thought={currentThought}
                               isActive={true}
                               onClose={onClose}
                               onDelete={handleThoughtDeleted}
                               onNext={handleNext}
+                              onPrevious={handlePrevious}
                            />
                         ) : (
                            <motion.div

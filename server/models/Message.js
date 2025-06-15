@@ -18,8 +18,16 @@ const messageSchema = new mongoose.Schema(
       },
       type: {
          type: String,
-         enum: ["text", "image", "file"],
+         enum: ["text", "image", "file", "story"],
          default: "text",
+      },
+      isSharedStory: {
+         type: Boolean,
+         default: false,
+      },
+      thoughtRef: {
+         type: mongoose.Schema.Types.ObjectId,
+         ref: "Thought",
       },
       readBy: [
          {

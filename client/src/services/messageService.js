@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 // Get all conversations
 export const getConversations = async () => {
@@ -46,4 +46,18 @@ export const markAsRead = async (messageId) => {
 export const deleteMessage = async (messageId) => {
   const response = await api.delete(`/messages/${messageId}`);
   return response.data;
+};
+
+export const shareStoryInMessage = async (thoughtId, userId) => {
+   try {
+      const response = await api.post("/messages/share-story", {
+         thoughtId,
+         userId,
+      });
+
+      return response.data;
+   } catch (error) {
+      console.error("Error sharing story:", error);
+      throw error;
+   }
 };
