@@ -1,6 +1,7 @@
 const express = require("express");
 const { protect } = require("../middleware/auth");
 const Thought = require("../models/Thought");
+const { analyzeSentiment, detectToxicity } = require("../services/textAnalysis");
 
 const router = express.Router();
 
@@ -51,12 +52,42 @@ router.post("/", protect, async (req, res) => {
    try {
       const { content, type, topics } = req.body;
 
+      // Defaults
+      let sentiment = { mood: "NEUTRAL", confidence: 0 };
+      let toxicity = { isToxic: false, confidence: 0 };
+
+      // Create the thought first
       const thought = await Thought.create({
          content,
          type,
          topics,
          user: req.user._id,
+         sentiment,
+         toxicity,
       });
+
+      // If there's content, analyze it in the background
+      if (content) {
+         // Start sentiment analysis (background)
+         analyzeSentiment(content)
+            .then((sentimentResult) => {
+               Thought.findByIdAndUpdate(thought._id, { sentiment: sentimentResult }).catch(console.error);
+            })
+            .catch(console.error);
+
+         // Start toxicity analysis (background)
+         detectToxicity(content)
+            .then((toxicityResult) => {
+               Thought.findByIdAndUpdate(thought._id, { toxicity: toxicityResult }).catch(console.error);
+               // Optionally, notify admins or users if content is toxic
+               if (toxicityResult.isToxic && toxicityResult.confidence > 0.8) {
+                  // Example: Send a notification or log for moderation
+                  console.log(`Toxic content detected in thought ${thought._id}`);
+                  // You could also send a message to a moderation queue or notify an admin
+               }
+            })
+            .catch(console.error);
+      }
 
       await thought.populate("user", "name profileImage username");
 
@@ -65,9 +96,10 @@ router.post("/", protect, async (req, res) => {
          data: thought,
       });
    } catch (error) {
+      console.error("Error creating thought:", error);
       res.status(400).json({
          success: false,
-         error: "Failed to create thought",
+         error: error.message || "Failed to create thought",
       });
    }
 });

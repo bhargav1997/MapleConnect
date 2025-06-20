@@ -128,6 +128,29 @@ const PostSchema = new mongoose.Schema(
             },
          },
       ],
+      sentiment: {
+         mood: {
+            type: String,
+            enum: ["POSITIVE", "NEGATIVE", "NEUTRAL"],
+            default: "NEUTRAL",
+         },
+         confidence: {
+            type: Number,
+            min: 0,
+            max: 1,
+         },
+      },
+      toxicity: {
+         isToxic: {
+            type: Boolean,
+            default: false,
+         },
+         confidence: {
+            type: Number,
+            min: 0,
+            max: 1,
+         },
+      },
    },
    {
       timestamps: true,

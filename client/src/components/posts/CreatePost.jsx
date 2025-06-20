@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPost } from "../../services/postService";
 import { addPost } from "../../redux/slices/postSlice";
 import { useAuth } from "../../context/AuthContext";
+import { analyzeSentiment, detectToxicity } from "../../services/analysisService";
 
 const CreatePost = ({ onClose }) => {
    const dispatch = useDispatch();
@@ -14,6 +15,9 @@ const CreatePost = ({ onClose }) => {
    const [location, setLocation] = useState("");
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [error, setError] = useState("");
+   const [mood, setMood] = useState(null);
+   const [toxicity, setToxicity] = useState(null);
+   const [analyzing, setAnalyzing] = useState(false);
    const fileInputRef = useRef(null);
    const [showLocationInput, setShowLocationInput] = useState(false);
    const [suggestedLocations, setSuggestedLocations] = useState([]);
@@ -76,6 +80,27 @@ const CreatePost = ({ onClose }) => {
       setShowLocationInput(false);
    };
 
+   const analyzeContent = async (text) => {
+      setAnalyzing(true);
+      setMood(null);
+      setToxicity(null);
+      try {
+         if (text.trim().length > 0) {
+            const [sentiment, toxic] = await Promise.all([
+               analyzeSentiment(text),
+               detectToxicity(text)
+            ]);
+            setMood(sentiment[0]?.label || null);
+            setToxicity(toxic[0]?.label === 'toxic' ? toxic[0] : null);
+         }
+      } catch (err) {
+         setMood(null);
+         setToxicity(null);
+      } finally {
+         setAnalyzing(false);
+      }
+   };
+
    const handleSubmit = async (e) => {
       e.preventDefault();
       if (!content.trim() && images.length === 0 && imageUrls.length === 0) {
@@ -135,13 +160,20 @@ const CreatePost = ({ onClose }) => {
                      </button>
                   </div>
 
-               <form onSubmit={handleSubmit} className='p-6'>
                   <div className='flex items-start space-x-4 mb-4'>
                      <img src={user.profileImage || "https://via.placeholder.com/40"} alt={user.name} className='h-10 w-10 rounded-full' />
                      <div className='flex-1'>
+                        {/* Mood and Toxicity Feedback */}
+                        {analyzing && <div className='mb-2 text-xs text-gray-400'>Analyzing mood...</div>}
+                        {mood && <div className='mb-2 text-xs text-blue-600'>Mood detected: <b>{mood}</b></div>}
+                        {toxicity && <div className='mb-2 text-xs text-red-600'>Warning: This post may be toxic!</div>}
+
                         <textarea
                            value={content}
-                           onChange={(e) => setContent(e.target.value)}
+                           onChange={async (e) => {
+                              setContent(e.target.value);
+                              analyzeContent(e.target.value);
+                           }}
                            placeholder="What's on your mind?"
                            className='w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-indigo-500'
                            rows='4'

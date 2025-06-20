@@ -1,5 +1,6 @@
 const Post = require("../models/Post");
 const User = require("../models/User");
+const { analyzeSentiment, detectToxicity } = require("../services/textAnalysis");
 
 // @desc    Create new post
 // @route   POST /api/posts
@@ -14,8 +15,9 @@ exports.createPost = async (req, res, next) => {
          req.body.imageUrls = req.body.imageUrls;
       }
 
-      // Extract hashtags from content if present
+      // Analyze content if present
       if (req.body.content) {
+         // Extract hashtags
          const hashtagRegex = /#(\w+)/g;
          const hashtags = [];
          let match;
@@ -26,6 +28,28 @@ exports.createPost = async (req, res, next) => {
 
          if (hashtags.length > 0) {
             req.body.hashtags = hashtags;
+         }
+
+         // Perform sentiment analysis
+         const sentimentResult = await analyzeSentiment(req.body.content);
+         req.body.sentiment = {
+            mood: sentimentResult.mood.toUpperCase(),
+            confidence: sentimentResult.confidence,
+         };
+
+         // Perform toxicity analysis
+         const toxicityResult = await detectToxicity(req.body.content);
+         req.body.toxicity = {
+            isToxic: toxicityResult.isToxic,
+            confidence: toxicityResult.confidence,
+         };
+
+         // If content is toxic with high confidence, reject the post
+         if (toxicityResult.isToxic && toxicityResult.confidence > 0.8) {
+            return res.status(400).json({
+               success: false,
+               error: "Your post contains inappropriate content and cannot be published.",
+            });
          }
       }
 

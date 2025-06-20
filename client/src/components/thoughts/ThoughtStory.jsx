@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { FiX, FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiTrash2, FiChevronLeft, FiChevronRight } from "react-icons/fi";
@@ -98,6 +98,21 @@ const ThoughtStory = ({ thought, onClose, isActive, onDelete, onNext, totalStori
       return <p className='text-lg whitespace-pre-wrap break-words'>{thought.content}</p>;
    };
 
+   // Helper for mood display
+   const getMoodDisplay = (mood) => {
+      switch ((mood || "").toUpperCase()) {
+         case "POSITIVE":
+            return { label: "Positive", color: "text-green-600", emoji: "😊" };
+         case "NEGATIVE":
+            return { label: "Negative", color: "text-red-600", emoji: "😞" };
+         case "NEUTRAL":
+         default:
+            return { label: "Neutral", color: "text-gray-500", emoji: "😐" };
+      }
+   };
+
+   const moodInfo = getMoodDisplay(thought.sentiment?.mood);
+
    return (
       <>
          <motion.div
@@ -158,6 +173,22 @@ const ThoughtStory = ({ thought, onClose, isActive, onDelete, onNext, totalStori
 
                {/* Main content */}
                <div className='mb-6'>{renderContent()}</div>
+
+               {/* Mood Indicator (AI-analyzed) */}
+               <div className='flex items-center gap-2 pb-2 mb-2'>
+                  <span
+                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 ${moodInfo.color}`}
+                     title='This mood is analyzed by AI, not set by the user.'>
+                     <span className='mr-1'>{moodInfo.emoji}</span>
+                     <span>{moodInfo.label}</span>
+                     {thought.sentiment?.confidence > 0 && (
+                        <span className='ml-1 text-gray-400'>({Math.round(thought.sentiment.confidence * 100)}%)</span>
+                     )}
+                  </span>
+                  <span className='text-xs text-gray-400 ml-2 italic' title='This is an automatic analysis, not user-provided.'>
+                     (AI-analyzed mood)
+                  </span>
+               </div>
 
                {/* Engagement */}
                <div className='flex items-center justify-between text-gray-500'>

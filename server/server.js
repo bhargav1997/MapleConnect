@@ -3,6 +3,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const path = require("path");
+// const fs = require("fs");  
 const http = require("http");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
@@ -21,6 +22,7 @@ const notificationRoutes = require("./routes/notifications");
 const chatRoutes = require("./routes/chats");
 const adminRoutes = require("./routes/admin");
 const thoughtRoutes = require("./routes/thoughts");
+const analysisRoutes = require("./routes/analysis");
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +30,22 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 const server = http.createServer(app);
+
+// Path to the default cache directory
+// const cacheDir = path.join(require("os").homedir(), ".cache", "huggingface", "hub");
+
+// Function to clear the cache
+// function clearCache() {
+//    if (fs.existsSync(cacheDir)) {
+//       fs.rmSync(cacheDir, { recursive: true, force: true });
+//       console.log("Cache cleared:", cacheDir);
+//    } else {
+//       console.log("No cache directory found:", cacheDir);
+//    }
+// }
+
+// Call this before initializing your models
+// clearCache();
 
 // Initialize Socket.IO
 const io = new Server(server, {
@@ -239,6 +257,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/thoughts", thoughtRoutes);
+app.use("/api/analysis", analysisRoutes);
 
 // Mount nested routes
 app.use("/api/groups/:groupId/events", eventRoutes);
