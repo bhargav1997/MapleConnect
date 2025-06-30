@@ -29,8 +29,6 @@ const Groups = () => {
       fetchGroups();
    }, [dispatch]);
 
-   console.log("groups", groups);
-
    // Filter groups based on search term and private filter
    filteredGroups = groups?.data?.filter((group) => group.name.toLowerCase().includes(searchTerm.toLowerCase()) && (!filterPrivate || !group.isPrivate));
 

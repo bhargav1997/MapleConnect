@@ -48,6 +48,8 @@ const getUser = async (req, res, next) => {
 // @access  Private
 const updateUser = async (req, res, next) => {
    try {
+      console.log("updateUser CALLED with:", req.params.id, req.body);
+
       // Make sure user is updating their own profile
       if (req.params.id !== req.user.id.toString()) {
          return res.status(401).json({
@@ -540,6 +542,50 @@ const deleteUser = async (req, res, next) => {
    }
 };
 
+const updateFeedPreference = async (req, res, next) => {
+   try {
+      console.log("in feed preference", req?.body);
+      console.log("in feed preference", req?.user);
+
+      const user = await User.findById(req.user.id || req.user._id);
+      if (!user) {
+         return res.status(404).json({
+            success: false,
+            error: "User not found",
+         });
+      }
+
+      // Flatten sentimentFilter if it's nested
+      if (Array.isArray(req.body.sentimentFilter)) {
+         req.body.sentimentFilter = req.body.sentimentFilter.flat();
+      }
+
+      // Validate sentimentFilter values
+      const allowedSentiments = ["POSITIVE", "NEUTRAL", "NEGATIVE"];
+      if (req.body.sentimentFilter && !req.body.sentimentFilter.every((val) => allowedSentiments.includes(val))) {
+         return res.status(400).json({
+            success: false,
+            error: "Invalid sentimentFilter values",
+         });
+      }
+
+      // ✅ Merge preferences
+      user.feedPreferences = {
+         ...user.feedPreferences,
+         ...req.body,
+      };
+
+      await user.save();
+
+      res.status(200).json({
+         success: true,
+         data: user.feedPreferences,
+      });
+   } catch (err) {
+      next(err);
+   }
+};
+
 module.exports = {
    getUsers,
    getUser,
@@ -554,4 +600,5 @@ module.exports = {
    getFollowing,
    updateAccountSettings,
    deleteUser,
+   updateFeedPreference,
 };

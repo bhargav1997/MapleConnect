@@ -4,7 +4,7 @@ import { getPosts } from "../services/postService";
 import CreatePostModal from "../components/CreatePostModal";
 import FeedPreferences from "../components/FeedPreferences";
 import PostCard from "../components/PostCard";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import PeopleYouMayKnow from "../components/suggestions/PeopleYouMayKnow";
 import defaultUserImage from "../assets/default-user.png";
@@ -81,8 +81,7 @@ const Home = () => {
          fetchPosts();
          fetchThoughts();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [isAuthenticated, activeTab, fetchPosts]);
+   }, [isAuthenticated, activeTab]);
 
    const handlePostCreated = async () => {
       await fetchPosts();
@@ -103,14 +102,10 @@ const Home = () => {
       }
    };
 
-   // Filter posts by sentiment before rendering
-   const filteredPosts = posts.filter((post) => {
-      // If no sentiment filter, show all
-      if (!user?.feedPreferences?.sentimentFilter || user.feedPreferences.sentimentFilter.length === 0) return true;
-      // If post has no sentiment, show (or you can choose to hide)
-      if (!post.sentiment?.mood) return true;
-      return user.feedPreferences.sentimentFilter.includes(post.sentiment.mood?.toUpperCase());
-   });
+   // Find the first thought index for a user
+   const findUserFirstThoughtIndex = (userId) => {
+      return thoughts.findIndex((thought) => thought.user._id === userId);
+   };
 
    return (
       <div className='flex flex-col max-w-7xl mx-auto px-4 py-6'>
@@ -123,13 +118,7 @@ const Home = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className='w-full mb-6 relative overflow-hidden'>
                   <div className='bg-gradient-to-r from-maple-red to-maple-red-dark rounded-xl shadow-lg p-6 md:p-8 relative z-10'>
-                     <button
-                        type='button'
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           setShowWelcome(false);
-                        }}
-                        className='absolute top-3 right-3 text-white/80 hover:text-white z-20'>
+                     <button onClick={() => setShowWelcome(false)} className='absolute top-3 right-3 text-white/80 hover:text-white'>
                         <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                         </svg>
@@ -569,7 +558,7 @@ const Home = () => {
                      <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 p-4'>
                         <div className='text-center text-red-500'>{error}</div>
                      </div>
-                  ) : !filteredPosts || filteredPosts.length === 0 ? (
+                  ) : !posts || posts.length === 0 ? (
                      <div className='bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 p-8'>
                         <div className='text-center'>
                            <div className='w-16 h-16 mx-auto mb-4 text-gray-400'>
@@ -598,7 +587,7 @@ const Home = () => {
                         </div>
                      </div>
                   ) : (
-                     filteredPosts.map((post) => (
+                     posts.map((post) => (
                         <div key={post._id}>
                            <PostCard post={post} onUpdate={fetchPosts} />
                         </div>

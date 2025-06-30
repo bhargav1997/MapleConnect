@@ -197,7 +197,6 @@ const MessageThread = ({ selectedUser, onBack }) => {
    };
 
    const renderMessageContent = (message) => {
-      console.log("Rendering message:", message);
       try {
          console.log("Message type:", message.type, "thoughtRef:", message.thoughtRef);
          if (message.type === "story" && message.thoughtRef && typeof message.thoughtRef === "object") {

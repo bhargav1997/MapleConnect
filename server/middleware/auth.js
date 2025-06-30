@@ -13,6 +13,7 @@ exports.protect = async (req, res, next) => {
 
       // Debug token
       console.log("Auth middleware - Token:", token);
+      console.log("Auth middleware - Headers:", req.headers);
 
       if (!token) {
          return res.status(401).json({
@@ -29,7 +30,7 @@ exports.protect = async (req, res, next) => {
          // Get user from token
          const user = await User.findById(decoded.id);
          console.log("Auth middleware - Found user:", {
-            id: user._id,
+            id: user._id || user.id,
             name: user.name,
             email: user.email,
          });

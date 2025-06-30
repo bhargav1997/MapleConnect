@@ -288,7 +288,8 @@ const PostCard = ({ post, onUpdate }) => {
             return { label: "Neutral", color: "text-gray-500", emoji: "😐" };
       }
    };
-   const moodInfo = getMoodDisplay(post.sentiment?.mood);
+
+   let moodInfo = getMoodDisplay(post?.sentiment?.mood);
 
    return (
       <motion.div
@@ -599,7 +600,7 @@ const PostCard = ({ post, onUpdate }) => {
          )}
 
          {/* Mood Indicator (AI-analyzed) */}
-         {post.sentiment?.mood && (
+         {post?.sentiment?.mood && (
             <div className='flex items-center gap-2 px-4 pb-2'>
                <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 ${moodInfo.color}`}
@@ -682,7 +683,6 @@ const PostCard = ({ post, onUpdate }) => {
          <div className='px-4 py-3 border-t border-gray-100'>
             {post.comments && post.comments.length > 0 && (
                <div className='mb-4 space-y-2'>
-                  {console.log("post", post.comments)}
                   {post.comments.map((comment) => (
                      <div key={comment._id} className='flex items-start group'>
                         <div className='flex-shrink-0'>

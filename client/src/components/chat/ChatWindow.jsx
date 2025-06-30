@@ -31,7 +31,6 @@ const ChatWindow = () => {
 
    const fetchMessages = async () => {
       try {
-         console.log("Fetching messages for userId:", userId);
          setLoading(true);
          setError("");
          const response = await getMessages(userId);
@@ -356,9 +355,7 @@ const ChatWindow = () => {
 
          {/* Messages Container - Scrollable area */}
          <div className='flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0'>
-            {console.log("All messages:", messages)}
             {messages.map((message) => {
-               console.log("Rendering message in ChatWindow:", message);
                return (
                   <div key={message._id} className={`flex ${isMyMessage(message) ? "justify-end" : "justify-start"} animate-fade-in`}>
                      <div

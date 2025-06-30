@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -24,17 +24,20 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
       if (user?.feedPreferences) {
          setPreferences((prev) => ({
             ...prev,
-            ...user.feedPreferences,
-            sentimentFilter: user.feedPreferences.sentimentFilter || ["POSITIVE", "NEUTRAL"],
+            ...user?.feedPreferences,
+            sentimentFilter: user?.feedPreferences?.sentimentFilter || ["POSITIVE", "NEUTRAL"],
          }));
       }
    }, [user]);
 
-   const handleSave = async () => {
+   const handleSavePreference = async () => {
       try {
          setLoading(true);
-         const response = await api.put("/users/feed-preferences", preferences);
-         if (response.data.success) {
+         const response = await api.put("/users/feed-preferences", {
+            ...user,
+            ...preferences,
+         });
+         if (response?.data?.success) {
             toast.success("Feed preferences updated!");
             onUpdate();
             onClose();
@@ -81,12 +84,12 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
    if (!isOpen) return null;
 
    return (
-      <div
+      <motion.div
          initial={{ opacity: 0 }}
          animate={{ opacity: 1 }}
          exit={{ opacity: 0 }}
          className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'>
-         <div
+         <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -282,15 +285,15 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
                      Cancel
                   </button>
                   <button
-                     onClick={handleSave}
+                     onClick={handleSavePreference}
                      disabled={loading}
                      className='px-4 py-2 bg-maple-red text-white rounded-lg hover:bg-maple-red-dark disabled:opacity-50'>
                      {loading ? "Saving..." : "Save Preferences"}
                   </button>
                </div>
             </div>
-         </div>
-      </div>
+         </motion.div>
+      </motion.div>
    );
 };
 

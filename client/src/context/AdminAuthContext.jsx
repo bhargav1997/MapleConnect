@@ -29,7 +29,6 @@ export const AdminAuthProvider = ({ children }) => {
             if (loginResponse.user.isAdmin) {
                // Generate OTP for admin verification
                const otpResponse = await authService.generateLoginOTP(email);
-               console.log("otpResponse", otpResponse);
                if (otpResponse.success) {
                   setAdminEmail(email);
                   setIsWaitingForOTP(true);

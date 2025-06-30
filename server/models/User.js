@@ -102,6 +102,12 @@ const UserSchema = new mongoose.Schema(
                trim: true,
             },
          ],
+         sentimentFilter: {
+            type: [String],
+            enum: ["POSITIVE", "NEUTRAL", "NEGATIVE"],
+            default: ["POSITIVE", "NEUTRAL", "NEGATIVE"],
+         },
+
          minimumEngagement: {
             type: Number,
             default: 0, // 0 means show all posts

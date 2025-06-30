@@ -105,26 +105,35 @@ exports.createPost = async (req, res, next) => {
 // @desc    Get all posts
 // @route   GET /api/posts
 // @access  Private
+
 exports.getPosts = async (req, res, next) => {
    try {
-      const { type } = req.query;
+      const { type = "personalized" } = req.query;
+
       let query = {};
       let sort = {};
 
-      // Get user's feed preferences
-      const user = await User.findById(req.user.id);
+      const user = await User.findById(req.user.id).lean();
+      if (!user) {
+         return res.status(404).json({ success: false, error: "User not found" });
+      }
+
       const prefs = user.feedPreferences || {};
+
+      const following = user.following || [];
+
+      // ---------- TRENDING FEED ----------
       if (type === "trending") {
          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-         query = {
-            visibility: "public",
-            isPrivate: false,
-            createdAt: { $gte: thirtyDaysAgo },
-         };
-
          const posts = await Post.aggregate([
-            { $match: query },
+            {
+               $match: {
+                  visibility: "public",
+                  isPrivate: false,
+                  createdAt: { $gte: thirtyDaysAgo },
+               },
+            },
             {
                $addFields: {
                   engagementScore: {
@@ -141,14 +150,11 @@ exports.getPosts = async (req, res, next) => {
             { path: "comments.user", select: "name username profileImage" },
          ]);
 
-         return res.status(200).json({
-            success: true,
-            data: posts,
-         });
-      } else if (type === "following") {
-         // Get posts from users that the current user follows
-         const following = user.following || [];
+         return res.status(200).json({ success: true, data: posts });
+      }
 
+      // ---------- FOLLOWING FEED ----------
+      if (type === "following") {
          query = {
             user: { $in: following },
             $or: [{ visibility: "public" }, { visibility: "friends", user: { $in: user.followers || [] } }],
@@ -161,90 +167,96 @@ exports.getPosts = async (req, res, next) => {
             .populate("comments.user", "name username profileImage")
             .populate("likes", "name username profileImage");
 
-         return res.status(200).json({
-            success: true,
-            data: posts,
-         });
-      } else {
-         // Build query based on user preferences
-         const timeFilter = getTimeFilter(prefs.timeWindow);
-         if (timeFilter) {
-            query.createdAt = timeFilter;
-         }
+         return res.status(200).json({ success: true, data: posts });
+      }
 
-         // Content type filtering
-         if (prefs.contentTypes && prefs.contentTypes.length > 0) {
-            query.$or = prefs.contentTypes.map((type) => {
-               if (type === "text") return { "images.0": { $exists: false }, poll: { $exists: false } };
-               if (type === "images") return { "images.0": { $exists: true } };
-               if (type === "polls") return { poll: { $exists: true } };
-            });
-         }
+      // ---------- PERSONALIZED FEED ----------
+      // Time window
+      const timeFilter = getTimeFilter(prefs.timeWindow);
+      if (timeFilter) {
+         query.createdAt = timeFilter;
+      }
 
-         // Topic filtering
-         if (prefs.topicsOfInterest && prefs.topicsOfInterest.length > 0) {
-            query.hashtags = { $in: prefs.topicsOfInterest };
-         }
-         if (prefs.excludedTopics && prefs.excludedTopics.length > 0) {
-            query.hashtags = { ...query.hashtags, $nin: prefs.excludedTopics };
-         }
-
-         // Visibility and following filter
-         const following = req.user.following;
-
-         const visibilityQuery = prefs.prioritizeFollowing
-            ? {
-                 $or: [
-                    {
-                       user: { $in: following },
-                       $or: [{ visibility: "public" }, { visibility: "friends" }],
-                       isPrivate: false,
-                    },
-                    { visibility: "public", isPrivate: false },
-                    { user: req.user.id }, // Include user's own posts
-                 ],
-              }
-            : {
-                 $or: [
-                    { visibility: "public", isPrivate: false },
-                    { user: req.user.id }, // Include user's own posts
-                 ],
-              };
-
-         query = { ...query, ...visibilityQuery };
-
-         // Sorting
-         switch (prefs.sortBy) {
-            case "popular":
-               sort = { likesCount: -1, commentsCount: -1, createdAt: -1 };
-               break;
-            case "relevant":
-               // Combine recency and popularity
-               sort = {
-                  score: {
-                     $add: [
-                        { $size: "$likes" },
-                        { $size: "$comments" },
-                        { $divide: [{ $subtract: ["$createdAt", new Date(0)] }, 86400000] },
-                     ],
-                  },
-               };
-               break;
-            case "recent":
-            default:
-               sort = { createdAt: -1 };
-         }
-
-         const posts = await Post.find(query)
-            .sort(sort)
-            .populate("user", "name profileImage username")
-            .populate("comments.user", "name profileImage username");
-
-         return res.status(200).json({
-            success: true,
-            data: posts,
+      // Content types
+      if (prefs.contentTypes?.length > 0) {
+         query.$or = prefs.contentTypes.map((type) => {
+            if (type === "text") return { "images.0": { $exists: false }, poll: { $exists: false } };
+            if (type === "images") return { "images.0": { $exists: true } };
+            if (type === "polls") return { poll: { $exists: true } };
          });
       }
+
+      // Sentiment
+      if (prefs.sentimentFilter?.length > 0) {
+         query["sentiment.mood"] = { $in: prefs.sentimentFilter };
+      }
+
+      // Topics of interest
+      if (prefs.topicsOfInterest?.length > 0) {
+         query.hashtags = { $in: prefs.topicsOfInterest };
+      }
+
+      // Excluded topics
+      if (prefs.excludedTopics?.length > 0) {
+         query.hashtags = {
+            ...(query.hashtags || {}),
+            $nin: prefs.excludedTopics,
+         };
+      }
+
+      // Replies
+      if (prefs.showReplies === false) {
+         query.isReply = false;
+      }
+
+      // Minimum engagement (assuming engagementScore exists)
+      if (prefs.minimumEngagement && prefs.minimumEngagement > 0) {
+         query.engagementScore = { $gte: prefs.minimumEngagement };
+      }
+
+      // Visibility logic
+      const visibilityQuery = prefs.prioritizeFollowing
+         ? {
+              $or: [
+                 {
+                    user: { $in: following },
+                    $or: [{ visibility: "public" }, { visibility: "friends" }],
+                    isPrivate: false,
+                 },
+                 { visibility: "public", isPrivate: false },
+                 { user: req.user.id },
+              ],
+           }
+         : {
+              $or: [{ visibility: "public", isPrivate: false }, { user: req.user.id }],
+           };
+
+      if (query.$or && visibilityQuery.$or) {
+         query.$or = [...query.$or, ...visibilityQuery.$or];
+         delete visibilityQuery.$or;
+      }
+      query = { ...query, ...visibilityQuery };
+
+      // Sorting
+      switch (prefs.sortBy) {
+         case "popular":
+            sort = { likesCount: -1, commentsCount: -1, createdAt: -1 };
+            break;
+         case "relevant":
+            sort = { likesCount: -1, commentsCount: -1, createdAt: -1 }; // fallback
+            break;
+         case "recent":
+         default:
+            sort = { createdAt: -1 };
+      }
+
+      // Final fetch
+      const posts = await Post.find(query)
+         .sort(sort)
+         .populate("user", "name profileImage username")
+         .populate("comments.user", "name profileImage username");
+
+      return res.status(200).json({ success: true, data: posts });
    } catch (err) {
       console.error("Error in getPosts:", err);
       next(err);

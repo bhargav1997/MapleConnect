@@ -1,9 +1,12 @@
 import api from "./api";
 
 // Get all posts
-export const getPosts = async (type = "all") => {
+export const getPosts = async (type = "personalized") => {
    try {
-      const response = await api.get(`/posts${type === "trending" ? "?type=trending" : ""}`);
+      const allowedTypes = ["trending", "following", "personalized"];
+      const safeType = allowedTypes.includes(type) ? type : "personalized";
+
+      const response = await api.get(`/posts?type=${safeType}`);
       return response;
    } catch (error) {
       console.error("Error in getPosts:", error);
