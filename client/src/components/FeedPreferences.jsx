@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -15,13 +15,18 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
       excludedTopics: [],
       minimumEngagement: 0,
       timeWindow: "all",
+      sentimentFilter: ["POSITIVE", "NEUTRAL"], // Default: show positive & neutral
    });
    const [newTopic, setNewTopic] = useState("");
    const [loading, setLoading] = useState(false);
 
    useEffect(() => {
       if (user?.feedPreferences) {
-         setPreferences(user.feedPreferences);
+         setPreferences((prev) => ({
+            ...prev,
+            ...user.feedPreferences,
+            sentimentFilter: user.feedPreferences.sentimentFilter || ["POSITIVE", "NEUTRAL"],
+         }));
       }
    }, [user]);
 
@@ -76,12 +81,12 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
    if (!isOpen) return null;
 
    return (
-      <motion.div
+      <div
          initial={{ opacity: 0 }}
          animate={{ opacity: 1 }}
          exit={{ opacity: 0 }}
          className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'>
-         <motion.div
+         <div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -108,6 +113,38 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
                         <option value='popular'>Most Popular</option>
                         <option value='relevant'>Most Relevant</option>
                      </select>
+                  </div>
+
+                  {/* Sentiment Filter */}
+                  <div>
+                     <label className='block text-sm font-medium text-gray-700 mb-2'>Show Posts With Mood</label>
+                     <div className='flex gap-4'>
+                        {[
+                           { label: "Positive", value: "POSITIVE", emoji: "😊" },
+                           { label: "Neutral", value: "NEUTRAL", emoji: "😐" },
+                           { label: "Negative", value: "NEGATIVE", emoji: "😞" },
+                        ].map((mood) => (
+                           <label key={mood.value} className='flex items-center gap-1'>
+                              <input
+                                 type='checkbox'
+                                 checked={preferences.sentimentFilter.includes(mood.value)}
+                                 onChange={(e) => {
+                                    setPreferences((prev) => {
+                                       const newFilter = e.target.checked
+                                          ? [...prev.sentimentFilter, mood.value]
+                                          : prev.sentimentFilter.filter((v) => v !== mood.value);
+                                       return { ...prev, sentimentFilter: newFilter };
+                                    });
+                                 }}
+                                 className='rounded border-gray-300 text-maple-red focus:ring-maple-red'
+                              />
+                              <span>
+                                 {mood.emoji} {mood.label}
+                              </span>
+                           </label>
+                        ))}
+                     </div>
+                     <div className='text-xs text-gray-400 mt-1'>(Mood is automatically analyzed by AI)</div>
                   </div>
 
                   {/* Content Types */}
@@ -252,8 +289,8 @@ const FeedPreferences = ({ isOpen, onClose, onUpdate }) => {
                   </button>
                </div>
             </div>
-         </motion.div>
-      </motion.div>
+         </div>
+      </div>
    );
 };
 

@@ -276,6 +276,20 @@ const PostCard = ({ post, onUpdate }) => {
       }
    };
 
+   // Helper for mood display
+   const getMoodDisplay = (mood) => {
+      switch ((mood || "").toUpperCase()) {
+         case "POSITIVE":
+            return { label: "Positive", color: "text-green-600", emoji: "😊" };
+         case "NEGATIVE":
+            return { label: "Negative", color: "text-red-600", emoji: "😞" };
+         case "NEUTRAL":
+         default:
+            return { label: "Neutral", color: "text-gray-500", emoji: "😐" };
+      }
+   };
+   const moodInfo = getMoodDisplay(post.sentiment?.mood);
+
    return (
       <motion.div
          initial={{ opacity: 0, y: 20 }}
@@ -537,7 +551,7 @@ const PostCard = ({ post, onUpdate }) => {
 
          {/* Poll Section */}
          {post.poll && post.poll.options && post.poll.options.length > 0 && (
-            <div className='px-4 pb-4'>
+            <div className='px-4 pb-4 pt-2'>
                <div className='bg-gray-50 rounded-xl p-4'>
                   <h3 className='font-semibold text-gray-900 mb-3'>{post.poll.question}</h3>
                   <div className='space-y-2'>
@@ -581,6 +595,24 @@ const PostCard = ({ post, onUpdate }) => {
                      )}
                   </div>
                </div>
+            </div>
+         )}
+
+         {/* Mood Indicator (AI-analyzed) */}
+         {post.sentiment?.mood && (
+            <div className='flex items-center gap-2 px-4 pb-2'>
+               <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 ${moodInfo.color}`}
+                  title='This mood is analyzed by AI, not set by the user.'>
+                  <span className='mr-1'>{moodInfo.emoji}</span>
+                  <span>{moodInfo.label}</span>
+                  {post.sentiment?.confidence > 0 && (
+                     <span className='ml-1 text-gray-400'>({Math.round(post.sentiment.confidence * 100)}%)</span>
+                  )}
+               </span>
+               <span className='text-xs text-gray-400 ml-2 italic' title='This is an automatic analysis, not user-provided.'>
+                  (AI-analyzed mood)
+               </span>
             </div>
          )}
 
