@@ -40,16 +40,16 @@ const SearchBar = () => {
       setIsLoading(true);
       try {
          // Search users
-         const usersResponse = await api.get(`/api/users?search=${searchTerm}`);
+         const usersResponse = await api.get(`/users?search=${searchTerm}`);
 
          // Search posts
-         const postsResponse = await api.get(`/api/posts?search=${searchTerm}`);
+         const postsResponse = await api.get(`/posts?search=${searchTerm}`);
 
          // Search groups
-         const groupsResponse = await api.get(`/api/groups?search=${searchTerm}`);
+         const groupsResponse = await api.get(`/groups?search=${searchTerm}`);
 
          // Search events
-         const eventsResponse = await api.get(`/api/events?search=${searchTerm}`);
+         const eventsResponse = await api.get(`/events?search=${searchTerm}`);
 
          // Combine results
          const combinedResults = [

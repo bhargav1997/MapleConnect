@@ -601,7 +601,7 @@ const PostCard = ({ post, onUpdate }) => {
 
          {/* Mood Indicator (AI-analyzed) */}
          {post?.sentiment?.mood && (
-            <div className='flex items-center gap-2 px-4 pb-2'>
+            <div className='flex items-center gap-2 px-4 pb-2 pt-2'>
                <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 ${moodInfo.color}`}
                   title='This mood is analyzed by AI, not set by the user.'>

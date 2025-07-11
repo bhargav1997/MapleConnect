@@ -28,19 +28,19 @@ const SearchResults = () => {
 
          try {
             // Search users
-            const usersResponse = await api.get(`/api/users?search=${query}`);
+            const usersResponse = await api.get(`/users?search=${query}`);
 
             // Search posts
-            const postsResponse = await api.get(`/api/posts?search=${query}`);
+            const postsResponse = await api.get(`/posts?search=${query}`);
 
             // Search groups
-            const groupsResponse = await api.get(`/api/groups?search=${query}`);
+            const groupsResponse = await api.get(`/groups?search=${query}`);
 
             // Search events
-            const eventsResponse = await api.get(`/api/events?search=${query}`);
+            const eventsResponse = await api.get(`/events?search=${query}`);
 
             // Search marketplace
-            const marketplaceResponse = await api.get(`/api/marketplace?search=${query}`);
+            const marketplaceResponse = await api.get(`/marketplace?search=${query}`);
 
             setResults({
                users: usersResponse.data.data,
