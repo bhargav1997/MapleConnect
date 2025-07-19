@@ -400,11 +400,11 @@ const updateAccountSettings = async (req, res, next) => {
       const fieldsToUpdate = {};
 
       // Basic fields
-      if (name) fieldsToUpdate.name = name;
-      if (bio) fieldsToUpdate.bio = bio;
-      if (location) fieldsToUpdate.location = location;
-      if (profileImage) fieldsToUpdate.profileImage = profileImage;
-      if (coverImage) fieldsToUpdate.coverImage = coverImage;
+      if (name !== undefined) fieldsToUpdate.name = name;
+      if (bio !== undefined) fieldsToUpdate.bio = bio;
+      if (location !== undefined) fieldsToUpdate.location = location;
+      if (profileImage !== undefined) fieldsToUpdate.profileImage = profileImage;
+      if (coverImage !== undefined) fieldsToUpdate.coverImage = coverImage;
 
       // Handle username update
       if (username) {
