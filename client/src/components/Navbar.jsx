@@ -113,7 +113,7 @@ const Navbar = () => {
                               </Link>
                            ))}
                         </div>
-                        <div className='hidden md:block md:ml-4 md:flex md:items-center'>
+                        <div className='hidden md:block md:ml-4 md:flex md:items-center focus:border-maple-red/30'>
                            <SearchBar />
                         </div>
                      </>

@@ -26,11 +26,11 @@ const MainLayout = ({ children }) => {
    ];
    const showFooter = !hideFooterPaths.includes(location.pathname) && !currentUser?.id;
 
+   const isAdminRoute = location.pathname.startsWith("/admin");
    return (
       <div className='flex flex-col min-h-screen bg-gray-50'>
-         <Navbar />
-         {/* Spacer to prevent content from being hidden behind fixed navbar */}
-         <div className='h-16'></div>
+         {!isAdminRoute && <Navbar />}
+         {!isAdminRoute && <div className='h-16'></div>}
          <main className='flex-grow'>{children}</main>
          {showFooter && <Footer />}
       </div>
