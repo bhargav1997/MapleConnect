@@ -12,8 +12,8 @@ exports.protect = async (req, res, next) => {
       }
 
       // Debug token
-      console.log("Auth middleware - Token:", token);
-      console.log("Auth middleware - Headers:", req.headers);
+      // console.log("Auth middleware - Token:", token);
+      // console.log("Auth middleware - Headers:", req.headers);
 
       if (!token) {
          return res.status(401).json({
@@ -25,15 +25,15 @@ exports.protect = async (req, res, next) => {
       try {
          // Verify token
          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-         console.log("Auth middleware - Decoded token:", decoded);
+         // console.log("Auth middleware - Decoded token:", decoded);
 
          // Get user from token
          const user = await User.findById(decoded.id);
-         console.log("Auth middleware - Found user:", {
-            id: user._id || user.id,
-            name: user.name,
-            email: user.email,
-         });
+         // console.log("Auth middleware - Found user:", {
+         //    id: user._id || user.id,
+         //    name: user.name,
+         //    email: user.email,
+         // });
 
          if (!user) {
             return res.status(401).json({

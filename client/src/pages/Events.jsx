@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getEvents } from "../services/eventService";
+import { searchEventbriteEvents } from "../services/eventbriteService";
 import { getEventsStart, getEventsSuccess, getEventsFailure } from "../redux/slices/eventSlice";
 import EventCard from "../components/events/EventCard";
+import EventbriteCard from "../components/events/EventbriteCard";
 import CreateEventForm from "../components/events/CreateEventForm";
+import EventSearch from "../components/events/EventSearch";
 import { motion } from "framer-motion";
 
 const Events = () => {
@@ -13,6 +16,52 @@ const Events = () => {
    const [searchTerm, setSearchTerm] = useState("");
    const [filterPrivate, setFilterPrivate] = useState(false);
    const [filterPast, setFilterPast] = useState(true);
+   const [eventbriteEvents, setEventbriteEvents] = useState([]);
+   const [eventbriteError, setEventbriteError] = useState(null);
+   const [selectedLocation, setSelectedLocation] = useState("");
+   const [selectedRadius, setSelectedRadius] = useState(10);
+   const [showEventbrite, setShowEventbrite] = useState(true);
+
+   const [searchTimeout, setSearchTimeout] = useState(null);
+
+   // Debounced search function
+   const handleSearch = (searchValue) => {
+      setSearchTerm(searchValue);
+
+      // Clear existing timeout
+      if (searchTimeout) {
+         clearTimeout(searchTimeout);
+      }
+
+      // Set new timeout for API call
+      const timeoutId = setTimeout(async () => {
+         if (showEventbrite && selectedLocation) {
+            try {
+               setEventbriteError(null);
+               const events = await searchEventbriteEvents({
+                  location: selectedLocation,
+                  radius: selectedRadius,
+                  query: searchValue,
+                  startDate: new Date().toISOString(),
+                  endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // Next 90 days
+               });
+
+               if (events.error) {
+                  setEventbriteError(events.error);
+                  setEventbriteEvents([]);
+               } else {
+                  setEventbriteEvents(events.data || []);
+               }
+            } catch (error) {
+               const errorMessage = error.response?.data?.error || error.message || "Failed to fetch Eventbrite events";
+               setEventbriteError(errorMessage);
+               setEventbriteEvents([]);
+            }
+         }
+      }, 500); // Wait 500ms after user stops typing
+
+      setSearchTimeout(timeoutId);
+   };
 
    useEffect(() => {
       const fetchEvents = async () => {
@@ -27,7 +76,14 @@ const Events = () => {
       };
 
       fetchEvents();
-   }, [dispatch]);
+
+      // Cleanup function to clear timeout when component unmounts
+      return () => {
+         if (searchTimeout) {
+            clearTimeout(searchTimeout);
+         }
+      };
+   }, [dispatch, searchTimeout]);
 
    // Filter events based on search term, private filter, and past filter
    const filteredEvents = events.filter((event) => {
@@ -76,22 +132,25 @@ const Events = () => {
          </div>
 
          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-            {/* Search and Filter */}
+            {/* Combined Event Search */}
             <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ duration: 0.5, delay: 0.2 }}
                className='bg-white rounded-xl shadow-md p-6 mb-8'>
                <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4'>
-                  <h2 className='text-xl font-semibold text-charcoal-gray'>Find Events</h2>
+                  <h2 className='text-xl font-semibold text-charcoal-gray'>Search Events</h2>
                   <div className='flex items-center space-x-2'>
-                     <span className='text-sm text-gray-500'>{sortedEvents.length} events found</span>
-                     {(searchTerm || filterPrivate || !filterPast) && (
+                     <span className='text-sm text-gray-500'>
+                        {sortedEvents.length + (eventbriteEvents.length > 0 ? ` + ${eventbriteEvents.length} public` : "")} events found
+                     </span>
+                     {(searchTerm || filterPrivate || !filterPast || selectedLocation) && (
                         <button
                            onClick={() => {
                               setSearchTerm("");
                               setFilterPrivate(false);
                               setFilterPast(true);
+                              setSelectedLocation("");
                            }}
                            className='text-sm text-maple-red hover:text-maple-red-dark font-medium'>
                            Clear filters
@@ -100,32 +159,82 @@ const Events = () => {
                   </div>
                </div>
 
-               <div className='flex flex-col sm:flex-row gap-4'>
-                  <div className='relative flex-1'>
-                     <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                        <svg
-                           className='h-5 w-5 text-gray-400'
-                           xmlns='http://www.w3.org/2000/svg'
-                           viewBox='0 0 20 20'
-                           fill='currentColor'
-                           aria-hidden='true'>
-                           <path
-                              fillRule='evenodd'
-                              d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z'
-                              clipRule='evenodd'
-                           />
-                        </svg>
+               <div className='space-y-4'>
+                  <div className='flex flex-col sm:flex-row gap-4'>
+                     <div className='relative flex-1'>
+                        <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                           <svg
+                              className='h-5 w-5 text-gray-400'
+                              xmlns='http://www.w3.org/2000/svg'
+                              viewBox='0 0 20 20'
+                              fill='currentColor'
+                              aria-hidden='true'>
+                              <path
+                                 fillRule='evenodd'
+                                 d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z'
+                                 clipRule='evenodd'
+                              />
+                           </svg>
+                        </div>
+                        <input
+                           type='text'
+                           className='focus:ring-maple-red focus:border-maple-red block w-full pl-10 py-3 sm:text-sm border-gray-300 rounded-lg shadow-sm'
+                           placeholder='Search by title or description...'
+                           value={searchTerm}
+                           onChange={(e) => handleSearch(e.target.value)}
+                        />
                      </div>
-                     <input
-                        type='text'
-                        className='focus:ring-maple-red focus:border-maple-red block w-full pl-10 py-3 sm:text-sm border-gray-300 rounded-lg shadow-sm'
-                        placeholder='Search by title, description, or location...'
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                     />
+                     {showEventbrite && (
+                        <>
+                           <div className='w-full sm:w-48'>
+                              <input
+                                 type='text'
+                                 value={selectedLocation}
+                                 onChange={(e) => {
+                                    setSelectedLocation(e.target.value);
+                                    handleSearch(searchTerm);
+                                 }}
+                                 placeholder='Enter city or postal code'
+                                 className='w-full px-4 py-3 sm:text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-maple-red focus:border-maple-red'
+                              />
+                           </div>
+                           <div className='w-full sm:w-36'>
+                              <select
+                                 value={selectedRadius}
+                                 onChange={(e) => {
+                                    setSelectedRadius(Number(e.target.value));
+                                    handleSearch(searchTerm);
+                                 }}
+                                 className='w-full px-4 py-3 sm:text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-maple-red focus:border-maple-red'>
+                                 <option value={5}>5 km</option>
+                                 <option value={10}>10 km</option>
+                                 <option value={25}>25 km</option>
+                                 <option value={50}>50 km</option>
+                              </select>
+                           </div>
+                        </>
+                     )}
                   </div>
 
-                  <div className='flex flex-wrap items-center gap-4'>
+                  <div className='flex flex-wrap items-center gap-4 pt-2'>
+                     <div className='flex items-center bg-gray-50 px-4 py-2 rounded-lg'>
+                        <input
+                           id='showEventbrite'
+                           name='showEventbrite'
+                           type='checkbox'
+                           checked={showEventbrite}
+                           onChange={(e) => {
+                              setShowEventbrite(e.target.checked);
+                              if (e.target.checked && selectedLocation) {
+                                 handleSearch(searchTerm);
+                              }
+                           }}
+                           className='h-4 w-4 text-maple-red focus:ring-maple-red border-gray-300 rounded'
+                        />
+                        <label htmlFor='showEventbrite' className='ml-2 block text-sm text-gray-700'>
+                           Include public events
+                        </label>
+                     </div>
                      <div className='flex items-center bg-gray-50 px-4 py-2 rounded-lg'>
                         <input
                            id='filterPrivate'
@@ -156,6 +265,9 @@ const Events = () => {
                   </div>
                </div>
             </motion.div>
+
+            {/* Error Messages */}
+            {eventbriteError && <div className='bg-red-50 text-red-600 p-4 rounded-lg mb-6'>{eventbriteError}</div>}
 
             {/* Create Event Form Modal */}
             {showCreateForm && (
@@ -248,17 +360,41 @@ const Events = () => {
                </motion.div>
             ) : (
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                     {sortedEvents.map((event, index) => (
-                        <motion.div
-                           key={event._id}
-                           initial={{ opacity: 0, y: 20 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           transition={{ duration: 0.3, delay: index * 0.1 }}>
-                           <EventCard event={event} />
-                        </motion.div>
-                     ))}
-                  </div>
+                  {/* Community Events */}
+                  {sortedEvents.length > 0 && (
+                     <div className='mb-8'>
+                        <h3 className='text-lg font-semibold text-charcoal-gray mb-4'>Community Events</h3>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                           {sortedEvents.map((event, index) => (
+                              <motion.div
+                                 key={event._id}
+                                 initial={{ opacity: 0, y: 20 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 transition={{ duration: 0.3, delay: index * 0.1 }}>
+                                 <EventCard event={event} />
+                              </motion.div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+
+                  {/* Eventbrite Events */}
+                  {showEventbrite && eventbriteEvents.length > 0 && (
+                     <div>
+                        <h3 className='text-lg font-semibold text-charcoal-gray mb-4'>Public Events Near You</h3>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                           {eventbriteEvents.map((event, index) => (
+                              <motion.div
+                                 key={event.id}
+                                 initial={{ opacity: 0, y: 20 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 transition={{ duration: 0.3, delay: index * 0.1 }}>
+                                 <EventbriteCard event={event} />
+                              </motion.div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
                </motion.div>
             )}
          </div>
