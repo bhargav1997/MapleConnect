@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import ThoughtsContainer from "./ThoughtsContainer";
+import defaultUserImage from "../../assets/default-user.png";
 
 const StoriesPreview = ({ thoughts }) => {
    const { user } = useAuth();
@@ -56,7 +57,7 @@ const StoriesPreview = ({ thoughts }) => {
                            isCurrentUser ? "bg-maple-red" : "bg-gradient-to-tr from-yellow-400 to-fuchsia-600"
                         }`}>
                         <img
-                           src={group.user.profileImage || "/default-avatar.png"}
+                           src={group.user.profileImage || defaultUserImage}
                            alt={group.user.name}
                            className='w-16 h-16 rounded-full object-cover border-2 border-white'
                         />

@@ -87,6 +87,8 @@ const Login = () => {
                   return;
                }
 
+               console.log("response", response);
+
                // Need OTP verification
                setTempToken(response.tempToken);
                setIsOtpSent(true);
@@ -103,6 +105,7 @@ const Login = () => {
             }
          }
       } catch (error) {
+         console.log("error", error);
          const errorMessage = error.response?.data?.error || "Failed to send OTP";
          setFormError(errorMessage);
          toast.error(errorMessage);

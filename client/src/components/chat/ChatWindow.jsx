@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import UserAvatar from "../common/UserAvatar";
 import { toast } from "react-hot-toast";
 import ThoughtsContainer from "../thoughts/ThoughtsContainer";
+import defaultUserImage from "../../assets/default-user.png";
 
 const ChatWindow = () => {
    const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
@@ -180,7 +181,7 @@ const ChatWindow = () => {
    };
 
    const handleDeleteMessage = async (messageId) => {
-      if (!window.confirm("Are you sure you want to delete this message?")) {
+      if (!window.confirm("Are you sure you want to delete this message?\n\nNote: It will also be removed for the other person.")) {
          return;
       }
 
@@ -240,7 +241,7 @@ const ChatWindow = () => {
                      <div className='flex items-center'>
                         <div className='w-8 h-8 rounded-full overflow-hidden border-2 border-maple-red'>
                            <img
-                              src={message.thoughtRef.user?.profileImage || "/default-avatar.png"}
+                              src={message.thoughtRef.user?.profileImage || defaultUserImage}
                               alt={message.thoughtRef.user?.name}
                               className='w-full h-full object-cover'
                            />

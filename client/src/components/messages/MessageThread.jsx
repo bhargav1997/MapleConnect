@@ -21,6 +21,7 @@ import {
 } from "../../redux/slices/messageSlice";
 import { getUserInitials } from "../../utils/helpers";
 import ThoughtsContainer from "../thoughts/ThoughtsContainer";
+import defaultUserImage from "../../assets/default-user.png";
 
 const MessageThread = ({ selectedUser, onBack }) => {
    const dispatch = useDispatch();
@@ -215,7 +216,7 @@ const MessageThread = ({ selectedUser, onBack }) => {
                      <div className='flex items-center'>
                         <div className='w-10 h-10 rounded-full overflow-hidden border-2 border-maple-red'>
                            <img
-                              src={message.thoughtRef.user?.profileImage || "/default-avatar.png"}
+                              src={message.thoughtRef.user?.profileImage || defaultUserImage}
                               alt={message.thoughtRef.user?.name}
                               className='w-full h-full object-cover'
                            />

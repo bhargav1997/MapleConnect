@@ -88,6 +88,7 @@ export const generateLoginOTP = async (email, remember = false) => {
       }
 
       const response = await api.post("/auth/generate-login-otp", { email, remember });
+      console.log("response", response);
       return { ...response.data, skipOTP: false };
    } catch (error) {
       console.error("Generate OTP error:", error);
